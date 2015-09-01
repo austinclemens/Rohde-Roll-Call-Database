@@ -1,0 +1,52 @@
+CODE:  21
+concur in senate amendment no 267 withamendment {'21': 2}
+flake substitute amendment {'21': 2}
+seventh portion of the divided question proposing to add a section 704 {'21': 2}
+ninth portion of the divided question proposing to add a section 706 {'21': 2}
+sixth portion of the divided question proposing to amend section 702 {'21': 2}
+rangel of new york substitute amendment {'21': 2}
+on ageeing to the amendments {'21': 2}
+on agreeing to the amendment as amended {'21': 13, '23': 2}
+stenholm substitute amendment {'21': 2}
+on agreeing to the amendment on motion torecommit {'21': 2}
+spratt substitute amendment {'21': 2}
+on agreeing to the amendment {'27': 45, '15': 2, '21': 4113, '22': 93, '23': 56, '69': 2, '80': 7}
+on agreeing to the substitute amendment as amended {'21': 2}
+on agreeing to the amendments en bloc {'21': 27}
+on agreeing to the amendments {'21': 19}
+traficant of ohio amendment {'21': 2}
+on agreeing to the en bloc amendments as modified {'21': 2}
+on agreeing to subsecs a b &amp; c of the amendment {'21': 2}
+on agreeing to part 2 of the amendment {'21': 2}
+on agreeing to the committee substitute as amended {'21': 2}
+lofgren substitute amendment {'21': 2}
+on agreeing to the senate amendment {'21': 2, '97': 4}
+jackson-lee of texas amendment number 6 {'21': 2}
+on agreeing to the amendment as modified {'21': 6}
+agreeing to the amendment to the motion to instruct {'21': 2}
+amendment to title {'21': 2}
+kucinich substitute amendment {'21': 2}
+on agreeing to subsection d of the amendment {'21': 2}
+on agreeing to part 1 of the amendment {'21': 2}
+rangel substitute amendment {'21': 3}
+eighth portion of the divided question proposing to add a section 705 {'21': 2}
+on agreeing to the amendments en bloc as modified {'21': 3}
+adt to motion to recede and concur in senate adt 37 with adt {'21': 2}
+on agreeing to the substitute amendment {'21': 11, '22': 3, '23': 10}
+
+CODE:  22 - 'name' to 'name' in amendment but varies greatly... 'Nethercutt Amendment to Dicks amendment'
+			checking for 'to' seems thin... Perhaps '[capital letter]...... to [capital letter]......'? ---- this is pro
+			blematic sometimes when amendment text is in all caps. No easy answers in the amendment 2 field either. Ex:
+			'An amendment to insert a new paragraph in lieu of the matter proposed to be inserted by the Burgess amendment'
+			Not clear if this is repeated
+on agreeing to the amendment to the amendment {'22': 2}
+on agreeing to the amendment {'27': 45, '15': 2, '21': 4113, '22': 93, '23': 56, '69': 2, '80': 7}
+agree to senate amendments with amendments {'22': 2}
+on agreeing to the substitute amendment {'21': 11, '22': 3, '23': 10}
+
+CODE:  23 - virtually always have 'substitute' in the amendment field LOOKS LIKE WE NEED TO CHECK FOR 'substitute' in a NEW AMENDMENT 2 FIELD - sometimes these look identical to 22 - amendments to amendments
+[row for row in newdata if row[6]=='23']
+on agreeing to the amendment as amended {'21': 13, '23': 2}
+substitute for the motion to instruct conferees {'23': 2}
+on agreeing to the amendment {'27': 45, '15': 2, '21': 4113, '22': 93, '23': 56, '69': 2, '80': 7}
+on agreeing to the substitute amendment {'21': 11, '22': 3, '23': 10}

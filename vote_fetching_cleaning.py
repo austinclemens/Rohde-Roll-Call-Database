@@ -11,7 +11,20 @@ import pandas as pd
 import time
 import csv
 
+server_file_location='votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
+scrape_votes(server_file_location)
+
+with open(server_file_location,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
+
+data=fix_contvotes(data)
+with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)
+
 
 def geturl(url):
 	try:
@@ -20,6 +33,7 @@ def geturl(url):
 		time.sleep(20)
 		print 'connection problem'
 		geturl(url)
+
 
 def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
@@ -275,12 +289,13 @@ def scrape_votes(existing_file):
 
 					votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
-					row=[congress,session,year,vote,'contvote','voteview',votecode,'issue','revote',
+					row=[congress,session,year,vote,'contvote','voteview',votecode,'issue','pres','revote',
 						totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
-						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,'statement',bill_type,bill_numb,
+						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
 						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
-					print row
-					writer.writerow(row)
+					code_votes([row])
+					print row[0]
+					writer.writerow(row[0])
 
 
 def output_training_votes(file_path='/Users/austinc/Desktop/votes.csv',target_file='/Users/austinc/Desktop/type_examples.csv'):
@@ -364,6 +379,25 @@ def find_conflicts(rows):
 	return conflict_dict
 
 
+def fix_contvotes(data):
+	"""Correctly determines the contvote number for a series of votes with non-cont numbers"""
+	years=list(set([row[2] for row in data[1:]]))
+	yeardict={}
+	for year in years:
+		votenums=[int(row[3]) for row in data if row[2]==year]
+		yeardict[year]=max(votenums)
+
+	for row in data[1:]:
+		if int(row[2])%2==0:
+			try:
+				row[4]=str(int(row[3])+int(yeardict[str(int(row[2])-1)]))
+			except:
+				pass
+		else:
+			row[4]=row[3]
+
+	return data
+
 
 def code_votes(data,test=0):
 	"""Take a set of rows and code each vote"""
@@ -382,6 +416,8 @@ def code_votes(data,test=0):
 
 		row[6]=code
 
+	return data
+
 def classify_question(question,question2,bill_title,amendment,votetype,billtype,amendment2,amendment3,test=0):
 	"""Takes three strings associated with a vote and classifies the vote. If more than one classification
 	is found or not classification is found, will classify the vote as '?'."""
@@ -397,7 +433,8 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 			dict['193']=1
 
 		# 63: 'motion to reconsider' and NOT 'table'
-		if 'motion to reconsider' in question or ('sustain' in question and 'chair' in question):
+		# if 'motion to reconsider' in question or ('sustain' in question and 'chair' in question):
+		if 'motion to reconsider' in question:
 			dict['63']=1
 
 		# 83: 'commit' AFTER performing a split on space
@@ -420,8 +457,8 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		if 'election' in question and 'speaker' in question:
 			dict['89']=1
 
-		# 30: 'on presidential veto' OR 'objections'
-		if 'on presidential veto' in question or 'objections' in question:
+		# 30: 'on presidential veto' OR 'objections' OR 'objection of president'
+		if 'on presidential veto' in question or 'objections' in question or 'objection of president' in question:
 			dict['30']=1
 
 		# 33: 'conference report' AND ('suspend the rules' OR 'suspend rules')
@@ -477,7 +514,7 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 			dict['79']=1
 
 		# 72: 'recommit' AND 'conference report' NOT 'table' AND 'conference' in question2
-		if 'recommit' in question and 'conference report' in question and 'conference' in question2:
+		if ('recommit' in question and 'conference report' in question and 'conference' in question2) or ('recommit' in question and 'conference' in question2):
 			dict['72']=1
 
 		# 93: 'recommit' NOT 'conference report' NOT 'table' NOT 'previous question' NOT 'conference' in question2
@@ -500,16 +537,12 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		if 'agreeing to amendment' in question and 'providing for consideration of bill' in bill_title:
 			dict['80']=1
 
-		# 27: 'agreeing to amendment' AND 'amendment to amendment' in amendment
-		if 'agreeing to amendment' in question and 'amendment to amendment' in amendment:
-			dict['27']=1
-
 		# 73: 'senate amendment' and 'agree' NOT 'suspend rules' or 'with'
 		if 'senate amendment' in question and 'suspend rules' not in question and 'agree' in question and 'with' not in question:
 			dict['73']=1
 
 		# 14: 'on passage' or 'agreeing to resolution' AND 'HJRES' in billtype NOT suspend
-		if ('on passage' in question or 'agreeing to resolution' in question) and 'suspend' not in question and (billtype=='HJRES' or billtype=='SJRES'):
+		if ('on passage' in question or 'agreeing to resolution' in question) and 'suspend' not in question and (billtype=='HJRES' or billtype=='SJRES') and 'constitution' not in bill_title:
 			dict['14']=1
 
 		# 16: 'HJRES' or 'SJRES' and 'passage' or 'agreeing' and 'suspend'
@@ -567,8 +600,12 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		# yet AND has an amendment2 field.
 		if len(dict.keys())==0 and (amendment2!='' or amendment3!=''):
 
+			# 27: 'to' AND 'substitute' in amendment
+			if 'to' in amendment and 'substitute' in amendment:
+				dict['27']=1
+
 			# 23: 'substitute' in amendment OR 'substitute' in amendment2 AND 'nature' not in amendment2 AND 'nature' not in amendment
-			if ('substitute' in amendment or 'substitute' in amendment2) and ('nature' not in amendment2 and 'nature' not in amendment and 'nature' not in amendment3):
+			if 'substitute' in amendment and 'to' not in amendment:
 				dict['23']=1
 
 			# 22: 'amendment to [A-Z].*? ' in amendment - amendment 3 is pretty similar here

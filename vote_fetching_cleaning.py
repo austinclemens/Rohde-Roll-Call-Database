@@ -6,25 +6,11 @@ import time
 import re
 import datetime
 import math
-import numpy as np
-import pandas as pd
 import time
 import csv
 
 server_file_location='votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
-scrape_votes(server_file_location)
-
-with open(server_file_location,'rU') as csvfile:
-	reader=csv.reader(csvfile)
-	data=[row for row in reader]
-
-data=fix_contvotes(data)
-with open(server_file_location,'wb') as csvfile:
-	writer=csv.writer(csvfile)
-	for row in data:
-		writer.writerow(row)
-
 
 def geturl(url):
 	try:
@@ -644,7 +630,17 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 
 
 
+scrape_votes(server_file_location)
 
+with open(server_file_location,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
+
+data=fix_contvotes(data)
+with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)
 
 
 

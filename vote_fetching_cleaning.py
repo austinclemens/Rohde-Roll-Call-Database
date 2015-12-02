@@ -9,7 +9,7 @@ import math
 import time
 import csv
 
-server_file_location='votes.csv'
+# server_file_location='votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):
@@ -408,8 +408,15 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 	"""Takes three strings associated with a vote and classifies the vote. If more than one classification
 	is found or not classification is found, will classify the vote as '?'."""
 	dict={}
+	print bill_title
+	print votetype
 
 	if 'table' not in question and 'previous question' not in question and 'substitute' not in question:
+
+		# 30: 'on presidential veto' OR 'objections' OR 'objection of president'
+		if 'on presidential veto' in question or 'objections' in question or 'objection of president' in question:
+			dict['30']=1
+
 		# 56: 'motion to discharge' and NOT 'table'
 		if 'motion to discharge' in question:
 			dict['56']=1
@@ -442,10 +449,6 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		# 89: 'election' AND 'speaker'
 		if 'election' in question and 'speaker' in question:
 			dict['89']=1
-
-		# 30: 'on presidential veto' OR 'objections' OR 'objection of president'
-		if 'on presidential veto' in question or 'objections' in question or 'objection of president' in question:
-			dict['30']=1
 
 		# 33: 'conference report' AND ('suspend the rules' OR 'suspend rules')
 		if 'conference report' in question and ('suspend rules' in question or 'suspend rules' in question):
@@ -495,8 +498,8 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		if 'resolve into committee' in question or 'resolving into committee' in question:
 			dict['94']=1
 
-		# 79: 'disagree' NOT 'table'
-		if 'disagree' in question or 'go to conference' in question:
+		# 79: 'disagree' NOT 'table' NOT 'recede'
+		if ('disagree' in question or 'go to conference' in question) and 'recede' not in question:
 			dict['79']=1
 
 		# 72: 'recommit' AND 'conference report' NOT 'table' AND 'conference' in question2
@@ -528,19 +531,19 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 			dict['73']=1
 
 		# 14: 'on passage' or 'agreeing to resolution' AND 'HJRES' in billtype NOT suspend
-		if ('on passage' in question or 'agreeing to resolution' in question) and 'suspend' not in question and (billtype=='HJRES' or billtype=='SJRES') and 'constitution' not in bill_title:
+		if ('on passage' in question or 'agreeing to resolution' in question) and 'suspend' not in question and (billtype=='HJRES' or billtype=='SJRES') and 'constitution' not in bill_title and '30' not in dict.keys() and 'constitution' not in votetype:
 			dict['14']=1
 
 		# 16: 'HJRES' or 'SJRES' and 'passage' or 'agreeing' and 'suspend'
-		if ('on passage' in question or 'agreeing to resolution' in question or 'and pass' in question) and 'suspend' in question and (billtype=='HJRES' or billtype=='SJRES'):
+		if ('on passage' in question or 'agreeing to resolution' in question or 'and pass' in question) and 'suspend' in question and (billtype=='HJRES' or billtype=='SJRES') and 'constitution' not in bill_title:
 			dict['16']=1
 
 		# 11: 'on passage' NOT 'HJRES' in billtype NOT ('constitution' AND 'amendment' in votetype)
-		if 'on passage' in question and billtype!='HJRES' and billtype!='SJRES' and 'constitution' not in question2:
+		if 'on passage' in question and billtype!='HJRES' and billtype!='SJRES' and 'constitution' not in question2 and '30' not in dict.keys():
 			dict['11']=1
 
 		# 97: 'recede and concur' or 'motion to concur' but also like 73 with 'with'
-		if 'concur' in question or ('senate amendment' in question and 'suspend rules' not in question and 'with' in question) or 'motion to concur' in question:
+		if '68' not in dict.keys() and 'concurrent' not in question and ('concur' in question or ('senate amendment' in question and 'suspend rules' not in question and 'with' in question) or 'motion to concur' in question or 'concur in the Senate amendment' in question2):
 			dict['97']=1
 
 		# 81: 'providing for consideration' or 'providing for further' in votetype, 'agreeing to resolution' in question 
@@ -556,15 +559,15 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 			dict['17']=1
 
 		# 18: 'suspend' and 'agree' billtype is 'HCONRE' or 'SCONRE'
-		if 'suspend' in question and 'agree' in question and (billtype=='SCONRE' or billtype=='HCONRE'):
+		if 'suspend' in question and 'agree' in question and (billtype=='SCONRE' or billtype=='HCONRE') and 'constitution' not in bill_title:
 			dict['18']=1
 
-		# 15: 'suspend' and 'pass' or 'agree' and billtype is 'HR' or 'S'
-		if 'suspend' in question and ('pass' in question or 'agree' in question) and (billtype=='HR' or billtype=='S') and 'senate amendment' not in question:
+		# 15: 'suspend' and 'pass' or 'agree' NOT 'conference report' and billtype is 'HR' or 'S'
+		if 'conference report' not in question and 'suspend' in question and ('pass' in question or 'agree' in question) and (billtype=='HR' or billtype=='S') and 'senate amendment' not in question:
 			dict['15']=1
 
-		# 1: 'amendment' and 'constitution' in question2
-		if 'amendment to constitution' in bill_title or 'constitutional amendment' in bill_title:
+		# 1: 'amendment' and 'constitution' in question2 and not 91 for whatever reason
+		if ('amendment to constitution' in bill_title or 'constitutional amendment' in bill_title) and len(dict.keys())==0:
 			dict['1']=1
 
 		# 19: analog to 13 but with suspension. 'suspend' + 'HRES' + ('agree' or 'pass')
@@ -587,19 +590,19 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		if len(dict.keys())==0 and (amendment2!='' or amendment3!=''):
 
 			# 27: 'to' AND 'substitute' in amendment
-			if 'to' in amendment and 'substitute' in amendment:
+			if ' to ' in amendment and 'substitute' in amendment:
 				dict['27']=1
 
 			# 23: 'substitute' in amendment OR 'substitute' in amendment2 AND 'nature' not in amendment2 AND 'nature' not in amendment
-			if 'substitute' in amendment and 'to' not in amendment:
+			if 'substitute' in amendment and ' to ' not in amendment:
 				dict['23']=1
 
 			# 22: 'amendment to [A-Z].*? ' in amendment - amendment 3 is pretty similar here
-			if 'to' in amendment and 'substitute' not in amendment:
+			if ' to ' in amendment and 'substitute' not in amendment:
 				dict['22']=1
 
-			# 21: all other amendments
-			if len(dict.keys())==0:
+			# 21: all other amendments and NOT 'committees to sit'
+			if len(dict.keys())==0 and 'committees to sit' not in question:
 				dict['21']=1
 
 	# 99: 'previous question' and 'providing for consideration' in votetype
@@ -630,17 +633,17 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 
 
 
-scrape_votes(server_file_location)
+# scrape_votes(server_file_location)
 
-with open(server_file_location,'rU') as csvfile:
-	reader=csv.reader(csvfile)
-	data=[row for row in reader]
+# with open(server_file_location,'rU') as csvfile:
+# 	reader=csv.reader(csvfile)
+# 	data=[row for row in reader]
 
-data=fix_contvotes(data)
-with open(server_file_location,'wb') as csvfile:
-	writer=csv.writer(csvfile)
-	for row in data:
-		writer.writerow(row)
+# data=fix_contvotes(data)
+# with open(server_file_location,'wb') as csvfile:
+# 	writer=csv.writer(csvfile)
+# 	for row in data:
+# 		writer.writerow(row)
 
 
 

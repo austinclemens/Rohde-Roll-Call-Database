@@ -9,7 +9,7 @@ import math
 import time
 import csv
 
-# server_file_location='votes.csv'
+server_file_location='/home/austinc/public_html/rohde_rollcalls/votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):
@@ -29,7 +29,7 @@ def scrape_votes(existing_file):
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
 
-	csvfile=open('/Users/austinc/Desktop/test.csv','a')
+	csvfile=open(server_file_location,'a')
 	writer=csv.writer(csvfile)
 
 	compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
@@ -281,7 +281,7 @@ def scrape_votes(existing_file):
 						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
 					code_votes([row])
 					print row[0]
-					writer.writerow(row[0])
+					writer.writerow(row)
 
 
 def output_training_votes(file_path='/Users/austinc/Desktop/votes.csv',target_file='/Users/austinc/Desktop/type_examples.csv'):
@@ -633,17 +633,17 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 
 
 
-# scrape_votes(server_file_location)
+scrape_votes(server_file_location)
 
-# with open(server_file_location,'rU') as csvfile:
-# 	reader=csv.reader(csvfile)
-# 	data=[row for row in reader]
+with open(server_file_location,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
 
-# data=fix_contvotes(data)
-# with open(server_file_location,'wb') as csvfile:
-# 	writer=csv.writer(csvfile)
-# 	for row in data:
-# 		writer.writerow(row)
+data=fix_contvotes(data)
+with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)
 
 
 

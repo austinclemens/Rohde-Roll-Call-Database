@@ -587,7 +587,7 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		# amendment2!=''. Some other votes that are not amendments occasionally pick up amendment2/3 fields however
 		# (update: this is a bug, should be fixed now) so the best thing is probably to see if a vote hasn't been coded
 		# yet AND has an amendment2 field.
-		if len(dict.keys())==0 and (amendment2!='' or amendment3!=''):
+		if len(dict.keys())==0 and (amendment!=''):
 
 			# 27: 'to' AND 'substitute' in amendment
 			if ' to ' in amendment and 'substitute' in amendment:
@@ -644,14 +644,4 @@ with open(server_file_location,'wb') as csvfile:
 	writer=csv.writer(csvfile)
 	for row in data:
 		writer.writerow(row)
-
-
-
-
-
-
-
-
-
-
 

@@ -280,7 +280,8 @@ def scrape_votes(existing_file):
 						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
 						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
 					code_votes([row])
-					print row[0]
+					print url
+					print row
 					writer.writerow(row)
 
 

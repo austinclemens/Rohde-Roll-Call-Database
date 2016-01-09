@@ -29,7 +29,7 @@ def scrape_votes(existing_file):
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
 
-	csvfile=open(server_file_location,'a')
+	csvfile=open(existing_file,'a')
 	writer=csv.writer(csvfile)
 
 	compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
@@ -275,7 +275,7 @@ def scrape_votes(existing_file):
 
 					votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
-					row=[congress,session,year,vote,'contvote','voteview',votecode,'issue','pres','revote',
+					row=[congress,session,year,vote,'','',votecode,'','','',
 						totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
 						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
 						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	

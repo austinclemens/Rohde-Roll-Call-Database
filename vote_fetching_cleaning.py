@@ -9,7 +9,7 @@ import math
 import time
 import csv
 
-server_file_location='/home/austinc/public_html/rohde_rollcalls/votes.csv'
+server_file_location='/Users/austinc/public_html/rohde_rollcalls/votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):
@@ -273,16 +273,20 @@ def scrape_votes(existing_file):
 					except:
 						pass
 
-					votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
+					try:
+						votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
-					row=[congress,session,year,vote,'','',votecode,'','','',
-						totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
-						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
-						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
-					code_votes([row])
-					print url
-					print row
-					writer.writerow(row)
+						row=[congress,session,year,vote,'','',votecode,'','','',
+							totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
+							nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
+							question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
+						code_votes([row])
+						print url
+						print row
+						writer.writerow(row)
+
+					except:
+						print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
 
 
 def output_training_votes(file_path='/Users/austinc/Desktop/votes.csv',target_file='/Users/austinc/Desktop/type_examples.csv'):

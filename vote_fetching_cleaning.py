@@ -9,7 +9,7 @@ import math
 import time
 import csv
 
-server_file_location='/Users/austinc/public_html/rohde_rollcalls/votes.csv'
+server_file_location='/home/austinc/public_html/rohde_rollcalls/votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):

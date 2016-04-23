@@ -20,7 +20,6 @@ def geturl(url):
 		print 'connection problem'
 		geturl(url)
 
-
 def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
 	that have already been coded so it doesn't duplicate work."""
@@ -273,20 +272,20 @@ def scrape_votes(existing_file):
 					except:
 						pass
 
-					try:
-						votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
+					# try:
+					votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
-						row=[congress,session,year,vote,'','',votecode,'','','',
-							totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
-							nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
-							question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
-						code_votes([row])
-						print url
-						print row
-						writer.writerow(row)
+					row=[congress,session,year,vote,'','',votecode,'','','',
+						totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
+						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
+						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
+					code_votes([row])
+					print url
+					print row
+					writer.writerow(row)
 
-					except:
-						print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
+					# except:
+					# 	print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
 
 
 def output_training_votes(file_path='/Users/austinc/Desktop/votes.csv',target_file='/Users/austinc/Desktop/type_examples.csv'):

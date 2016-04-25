@@ -8,8 +8,11 @@ import datetime
 import math
 import time
 import csv
+import os
 
-server_file_location='/home/austinc/public_html/rohde_rollcalls/votes.csv'
+server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
+# print os.path.dirname(os.path.realpath(__file__))
+# print server_file_location
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):
@@ -19,6 +22,7 @@ def geturl(url):
 		time.sleep(20)
 		print 'connection problem'
 		geturl(url)
+
 
 def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
@@ -59,7 +63,11 @@ def scrape_votes(existing_file):
 			url='http://clerk.house.gov/evs/%s/%s' % (year,page)
 			votepage=urllib2.urlopen(url).read()
 			vote_finder=re.compile('<TR><TD><A HREF="http://clerk.house.gov/cgi-bin/vote.asp\?year=.*?&rollnumber=.*?">(.*?)</A></TD>')
-			fullvote_finder=re.compile('<TR><TD><A HREF="http://clerk.house.gov/cgi-bin/vote.asp\?year=.*?&rollnumber=.*?">(.*?)</A></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">\r\n<A HREF="(.*?)">.*?</A>\r\n</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD ALIGN="CENTER"><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD></TR>')
+			
+			# this fullvotes string changed around 4/15/2016. The old one is preserved below.
+			# fullvote_finder=re.compile('<TR><TD><A HREF="http://clerk.house.gov/cgi-bin/vote.asp\?year=.*?&rollnumber=.*?">(.*?)</A></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">\r\n<A HREF="(.*?)">.*?</A>\r\n</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD ALIGN="CENTER"><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD></TR>')
+			# fullvote_finder=re.compile('<TR><TD><A HREF="http://clerk.house.gov/cgi-bin/vote.asp\?year=.*?&rollnumber=.*?">(.*?)</A></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">\r\n<A HREF="(.*?)">.*?</A>\r\n</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD ALIGN="CENTER"><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD></TR>')
+			fullvote_finder=re.compile('<TR><TD><A HREF="http://clerk.house.gov/cgi-bin/vote.asp\?year=.*?&rollnumber=.*?">(.*?)</A></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1">.*?</FONT></TD>\r\n<TD><FONT FACE="Arial" SIZE="-1"><A HREF="(.*?)">')
 			# 0 is roll call number, 1 is thomas page for the bill, might not be a link
 			votes=vote_finder.findall(votepage)
 			fullvotes=fullvote_finder.findall(votepage)
@@ -84,14 +92,16 @@ def scrape_votes(existing_file):
 					for fullvote in fullvotes:
 						if int(vote)==int(fullvote[0]):
 							bill_details=geturl(fullvote[1])
-							bill_title_finder=re.compile('<b>Latest Title:</b>(.*?)\n')
+							bill_title_details=geturl(fullvote[1]+'/titles')
+							# bill_title_finder=re.compile('<b>Latest Title:</b>(.*?)\n')
+							bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
 							all_action_finder=re.compile('<a href="(.*?)">All Congressional Actions\n</a>')
 							all_action_amendment_finder=re.compile('<a href="(.*?)">All Congressional Actions with Amendments</a>')
 							action_page=all_action_finder.findall(bill_details)
 							amend_page=all_action_amendment_finder.findall(bill_details)
 
 							try:
-								bill_title=bill_title_finder.findall(bill_details)[0]
+								bill_title=bill_title_finder.findall(bill_title_details)[0][1]
 							except:
 								bill_title=''
 
@@ -285,7 +295,7 @@ def scrape_votes(existing_file):
 					writer.writerow(row)
 
 					# except:
-					# 	print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
+						# print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
 
 
 def output_training_votes(file_path='/Users/austinc/Desktop/votes.csv',target_file='/Users/austinc/Desktop/type_examples.csv'):

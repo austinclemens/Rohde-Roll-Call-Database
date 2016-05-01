@@ -11,6 +11,7 @@ import csv
 import os
 
 server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
+# server_file_location='/Users/austinc/Desktop/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
 # print server_file_location
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
@@ -20,6 +21,7 @@ def geturl(url):
 		return urllib2.urlopen(url).read()
 	except:
 		time.sleep(20)
+		print url
 		print 'connection problem'
 		geturl(url)
 
@@ -109,11 +111,12 @@ def scrape_votes(existing_file):
 							# if len(amend_page)>0:
 							# 	page=amend_page[0]
 							# else:
+
 							# 	page=action_page[0]
 
 							try:
 								# action_url='http://thomas.loc.gov'+page
-								actions=geturl(action_url)
+								actions=action_url
 								# action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
 								action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
 								# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
@@ -137,7 +140,7 @@ def scrape_votes(existing_file):
 												amendment3=amendment3finder.findall(amendment_page)[0]
 											except:
 												amendment3=''
-												
+
 							except:
 								print "Couldn't find question."
 								question2=''

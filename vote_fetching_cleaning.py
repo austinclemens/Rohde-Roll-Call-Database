@@ -93,48 +93,56 @@ def scrape_votes(existing_file):
 						if int(vote)==int(fullvote[0]):
 							bill_details=geturl(fullvote[1])
 							bill_title_details=geturl(fullvote[1]+'/titles')
+							action_url=geturl(fullvote[1]+'/all-actions')
 							# bill_title_finder=re.compile('<b>Latest Title:</b>(.*?)\n')
 							bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
-							all_action_finder=re.compile('<a href="(.*?)">All Congressional Actions\n</a>')
-							all_action_amendment_finder=re.compile('<a href="(.*?)">All Congressional Actions with Amendments</a>')
-							action_page=all_action_finder.findall(bill_details)
-							amend_page=all_action_amendment_finder.findall(bill_details)
+							# all_action_finder=re.compile('<a href="(.*?)">All Congressional Actions\n</a>')
+							# all_action_amendment_finder=re.compile('<a href="(.*?)">All Congressional Actions with Amendments</a>')
+							# action_page=all_action_finder.findall(bill_details)
+							# amend_page=all_action_amendment_finder.findall(bill_details)
 
 							try:
 								bill_title=bill_title_finder.findall(bill_title_details)[0][1]
 							except:
 								bill_title=''
 
-							if len(amend_page)>0:
-								page=amend_page[0]
-							else:
-								page=action_page[0]
+							# if len(amend_page)>0:
+							# 	page=amend_page[0]
+							# else:
+							# 	page=action_page[0]
 
 							try:
-								action_url='http://thomas.loc.gov'+page
+								# action_url='http://thomas.loc.gov'+page
 								actions=geturl(action_url)
-								action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
-								amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
-								# '<dt><strong>.*?</strong><dd>(.*?<a href=".*?">.*?</a>'
-								all_actions=action_finder.findall(actions)
+								# action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
+								action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
+								# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
+								amendment_finder=re.compile('<a href="(.*?)">')
+								all_actions=action_finder.findall(actions)[0].strip()
 								for action in all_actions:
 									if url in action:
 										question2=action
-										if len(amendment_finder.findall(question2))>0:
-											amendment_url='http://thomas.loc.gov/cgi-bin/bdquery/%s' % (amendment_finder.findall(question2)[0])
-											amendment_page=geturl(amendment_url)
-											purpose_finder=re.compile('<p>AMENDMENT PURPOSE:<br />(.*?)\n')
-											amdesc_finder=re.compile('<p>AMENDMENT DESCRIPTION:<br />(.*?)\n')
+										if 'amendment' in question2:
+											amend_url=amendment_finder.findall(question2)[0]
+											amendment_page=geturl('https://www.congress.gov'+amend_url)
+
+											amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
+											amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
+
 											try:
-												amendment2=purpose_finder.findall(amendment_page)[0]
+												amendment2=amendment2finder.findall(amendment_page)[0]
 											except:
 												amendment2=''
 											try:
-												amendment3=amdesc_finder.findall(amendment_page)[0]
+												amendment3=amendment3finder.findall(amendment_page)[0]
 											except:
 												amendment3=''
+												
 							except:
-								pass
+								print "Couldn't find question."
+								question2=''
+								amendment2=''
+								amendment3=''
 
 					# define various regular expressions
 					congress_finder=re.compile('<congress>(.*?)</congress>')

@@ -104,7 +104,7 @@ def scrape_votes(existing_file):
 							# amend_page=all_action_amendment_finder.findall(bill_details)
 
 							try:
-								bill_title=bill_title_finder.findall(bill_title_details)[0][1]
+								bill_title=bill_title_finder.findall(bill_title_details)[0][1].replace('\n','').replace('\r','')
 							except:
 								bill_title=''
 
@@ -124,7 +124,7 @@ def scrape_votes(existing_file):
 								all_actions=action_finder.findall(actions)[0].strip()
 								for action in all_actions:
 									if url in action:
-										question2=action
+										question2=action.replace('\n','').replace('\r','')
 										if 'amendment' in question2:
 											amend_url=amendment_finder.findall(question2)[0]
 											amendment_page=geturl('https://www.congress.gov'+amend_url)
@@ -133,11 +133,11 @@ def scrape_votes(existing_file):
 											amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
 
 											try:
-												amendment2=amendment2finder.findall(amendment_page)[0]
+												amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
 											except:
 												amendment2=''
 											try:
-												amendment3=amendment3finder.findall(amendment_page)[0]
+												amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
 											except:
 												amendment3=''
 

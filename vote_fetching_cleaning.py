@@ -30,7 +30,7 @@ def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
 	that have already been coded so it doesn't duplicate work."""
 
-	with open(existing_file,'rU') as csvfile:
+	with open(existing_file,'r') as csvfile:
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
 

@@ -17,20 +17,27 @@ server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):
-	try:
-		return urllib2.urlopen(url).read()
-	except:
-		time.sleep(20)
-		print url
-		print 'connection problem'
-		geturl(url)
+	# try:
+	print url
+	return urllib2.urlopen(url).read()
+	# except:
+	# 	# time.sleep(20)
+	# 	print url
+	# 	print 'connection problem'
+	# 	# geturl(url)
+
 
 
 def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
 	that have already been coded so it doesn't duplicate work."""
 
-	with open(existing_file,'r') as csvfile:
+	# content = open(existing_file, "r").read().replace('\r\n','\n')
+
+	# with open(existing_file, "w") as g:
+	# 	g.write(content)
+
+	with open(existing_file,'rU') as csvfile:
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
 
@@ -670,3 +677,17 @@ with open(server_file_location,'wb') as csvfile:
 	for row in data:
 		writer.writerow(row)
 
+# remove all newline characters within text fields
+with open(server_file_location,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
+
+for i,row in enumerate(data):
+	for j,column in enumerate(row):
+		a=column.replace('\n','')
+		data[i][j]=a.replace('\r','')
+
+with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)

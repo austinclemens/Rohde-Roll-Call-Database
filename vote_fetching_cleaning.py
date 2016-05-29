@@ -10,7 +10,8 @@ import time
 import csv
 import os
 
-server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
+# server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
+
 # server_file_location='/Users/austinc/Desktop/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
 # print server_file_location
@@ -129,24 +130,24 @@ def scrape_votes(existing_file):
 							# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
 							amendment_finder=re.compile('<a href="(.*?)">')
 							all_actions=action_finder.findall(actions)[0].strip()
-							for action in all_actions:
-								if url in action:
-									question2=action.replace('\n','').replace('\r','')
-									if 'amendment' in question2:
-										amend_url=amendment_finder.findall(question2)[0]
-										amendment_page=geturl('https://www.congress.gov'+amend_url)
+							# for action in all_actions:
+								# if url in action:
+							question2=action.replace('\n','').replace('\r','')
+							if 'amendment' in question2:
+								amend_url=amendment_finder.findall(question2)[0]
+								amendment_page=geturl('https://www.congress.gov'+amend_url)
 
-										amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
-										amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
+								amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
+								amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
 
-										try:
-											amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-										except:
-											amendment2=''
-										try:
-											amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-										except:
-											amendment3=''
+								try:
+									amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+								except:
+									amendment2=''
+								try:
+									amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+								except:
+									amendment3=''
 
 							# except:
 							print "Couldn't find question."
@@ -665,29 +666,29 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 
 
 
-scrape_votes(server_file_location)
+# scrape_votes(server_file_location)
 
-with open(server_file_location,'rU') as csvfile:
-	reader=csv.reader(csvfile)
-	data=[row for row in reader]
+# with open(server_file_location,'rU') as csvfile:
+# 	reader=csv.reader(csvfile)
+# 	data=[row for row in reader]
 
-data=fix_contvotes(data)
-with open(server_file_location,'wb') as csvfile:
-	writer=csv.writer(csvfile)
-	for row in data:
-		writer.writerow(row)
+# data=fix_contvotes(data)
+# with open(server_file_location,'wb') as csvfile:
+# 	writer=csv.writer(csvfile)
+# 	for row in data:
+# 		writer.writerow(row)
 
-# remove all newline characters within text fields
-with open(server_file_location,'rU') as csvfile:
-	reader=csv.reader(csvfile)
-	data=[row for row in reader]
+# # remove all newline characters within text fields
+# with open(server_file_location,'rU') as csvfile:
+# 	reader=csv.reader(csvfile)
+# 	data=[row for row in reader]
 
-for i,row in enumerate(data):
-	for j,column in enumerate(row):
-		a=column.replace('\n','')
-		data[i][j]=a.replace('\r','')
+# for i,row in enumerate(data):
+# 	for j,column in enumerate(row):
+# 		a=column.replace('\n','')
+# 		data[i][j]=a.replace('\r','')
 
-with open(server_file_location,'wb') as csvfile:
-	writer=csv.writer(csvfile)
-	for row in data:
-		writer.writerow(row)
+# with open(server_file_location,'wb') as csvfile:
+# 	writer=csv.writer(csvfile)
+# 	for row in data:
+# 		writer.writerow(row)

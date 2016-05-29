@@ -122,38 +122,38 @@ def scrape_votes(existing_file):
 
 							# 	page=action_page[0]
 
-							# try:
-							# action_url='http://thomas.loc.gov'+page
-							actions=action_url
-							# action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
-							action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
-							# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
-							amendment_finder=re.compile('<a href="(.*?)">')
-							all_actions=action_finder.findall(actions)[0].strip()
-							# for action in all_actions:
-								# if url in action:
-							question2=action.replace('\n','').replace('\r','')
-							if 'amendment' in question2:
-								amend_url=amendment_finder.findall(question2)[0]
-								amendment_page=geturl('https://www.congress.gov'+amend_url)
+							try:
+								# action_url='http://thomas.loc.gov'+page
+								actions=action_url
+								# action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
+								action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
+								# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
+								amendment_finder=re.compile('<a href="(.*?)">')
+								all_actions=action_finder.findall(actions)[0].strip()
+								# for action in all_actions:
+									# if url in action:
+								question2=all_actions.replace('\n','').replace('\r','')
+								if 'amendment' in question2:
+									amend_url=amendment_finder.findall(question2)[0]
+									amendment_page=geturl('https://www.congress.gov'+amend_url)
 
-								amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
-								amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
+									amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
+									amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
 
-								try:
-									amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-								except:
-									amendment2=''
-								try:
-									amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-								except:
-									amendment3=''
+									try:
+										amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+									except:
+										amendment2=''
+									try:
+										amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+									except:
+										amendment3=''
 
-							# except:
-							print "Couldn't find question."
-							question2=''
-							amendment2=''
-							amendment3=''
+							except:
+								print "Couldn't find question."
+								question2=''
+								amendment2=''
+								amendment3=''
 
 					# define various regular expressions
 					congress_finder=re.compile('<congress>(.*?)</congress>')

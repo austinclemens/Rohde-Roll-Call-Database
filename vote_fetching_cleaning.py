@@ -10,7 +10,7 @@ import time
 import csv
 import os
 
-# server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
+server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
 
 # server_file_location='/Users/austinc/Desktop/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
@@ -666,29 +666,29 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 
 
 
-# scrape_votes(server_file_location)
+scrape_votes(server_file_location)
 
-# with open(server_file_location,'rU') as csvfile:
-# 	reader=csv.reader(csvfile)
-# 	data=[row for row in reader]
+with open(server_file_location,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
 
-# data=fix_contvotes(data)
-# with open(server_file_location,'wb') as csvfile:
-# 	writer=csv.writer(csvfile)
-# 	for row in data:
-# 		writer.writerow(row)
+data=fix_contvotes(data)
+with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)
 
-# # remove all newline characters within text fields
-# with open(server_file_location,'rU') as csvfile:
-# 	reader=csv.reader(csvfile)
-# 	data=[row for row in reader]
+# remove all newline characters within text fields
+with open(server_file_location,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
 
-# for i,row in enumerate(data):
-# 	for j,column in enumerate(row):
-# 		a=column.replace('\n','')
-# 		data[i][j]=a.replace('\r','')
+for i,row in enumerate(data):
+	for j,column in enumerate(row):
+		a=column.replace('\n','')
+		data[i][j]=a.replace('\r','')
 
-# with open(server_file_location,'wb') as csvfile:
-# 	writer=csv.writer(csvfile)
-# 	for row in data:
-# 		writer.writerow(row)
+with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)

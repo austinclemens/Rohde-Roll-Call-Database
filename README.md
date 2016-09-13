@@ -22,6 +22,6 @@ The remaining fields come not from the rollcall URL but instead from the Library
 
 6. **Title_Description**
 7. **question2**: In the 'Actions' tab of the amendment or bill, question2 is the full description given of the rollcall vote. It is often similar to the description given to the vote by the Office of the Clerk (question). These two images show the question2 for an amendment and a bill: ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/question2_1.png "Bill question2") ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/question2_2.png "Amendment question2")
-8. **bill_title**: bill_title is the formal short title of the underlying bill. It comes from the 'Titles' tab. In the image shown here, the bill_title is 'Student Success Act': ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/titles.png)
-9. **amendment2**
+8. **bill_title**: bill_title is the formal short title of the underlying bill. It comes from the 'Titles' tab. In the image shown here, the bill_title is 'Student Success Act': ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/titles.png "Bill title")
+9. **amendment2**: amendment2 is from the 'Purpose' field of the amendment's 'Description' tab, as shown in this screenshot: ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/purpose.png "Amendment2 field")
 10. **amendment3**

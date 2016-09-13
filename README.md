@@ -12,12 +12,15 @@ There is not a lot of text available to classify votes so the system is complete
 The following fields that were not present in the original Rohde dataset have been added:
 
 1. url: This is the URL to the rollcall vote record at the House Clerk's site. This is an XML file that provides many of the other fields listed below.
-1. billtype1: billtype1 is the first part of the underlying bill's designation e.g. HR, HRES, etc. It is found in the rollcall XML in legis-num field. `<legis-num>H R 3408</legis-num>`
-2. billnum1
-3. question
-4. amendment
-5. Title_Desription
-6. url
+2. billtype1: billtype1 is the first part of the underlying bill's designation e.g. HR, HRES, etc. It is found in the rollcall XML in legis-num field. In the example `<legis-num>H R 3408</legis-num>`, the billtype1 is HR
+3. billnum1: billnum1 is the numerical part of the underlying bill's designation. In the example `<legis-num>H R 3408</legis-num>`, the billnum1 is 3408.
+4. question: Question is a textual description of the rollcall in question. Each rollcall page contains this text after the QUESTION heading at the top of the page. In the XML it is the vote-question field. In the example `<vote-question>On Agreeing to the Amendment</vote-question>`, the question is 'on agreeing to the amendment.'
+5. amendment: amendment is recorded only for amendments and is given by the amendment-author field in the XML. In the HTML version of the rollcall it appears as the AUTHOR(S) field. In the example `<amendment-author>Scott of Virginia Part B Amendment No. 44</amendment-author>`, amendment is 'Scott of Virginia Part B Amendment No. 44.'
+
+The remaining fields come not from the rollcall URL but instead from the Library of Congress page describing the vote. To find this page, look at one of the House Clerk's rollcall session summary pages like this one: http://clerk.house.gov/evs/2015/ROLL_000.asp. Links in the 'issue' column go to the Library of Congress page for the underlying bill. The remaining fields are drawn from these pages (for bills themselves) or from the associated amendment page (for amendments - these can be found by clicking the 'Actions' tab and finding the appropriate amendment. 
+
+
+6. Title_Description
 7. question2
 8. bill_title
 9. amendment2

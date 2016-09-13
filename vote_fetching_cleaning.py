@@ -9,6 +9,7 @@ import math
 import time
 import csv
 import os
+from operator import itemgetter
 
 server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
 
@@ -18,26 +19,34 @@ server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 
 def geturl(url):
-	# try:
 	print url
 	return urllib2.urlopen(url).read()
-	# except:
-	# 	# time.sleep(20)
-	# 	print url
-	# 	print 'connection problem'
-	# 	# geturl(url)
 
+def fix_dayes(doc,doc2):
+	with open(doc,'rU') as csvfile:
+		reader=csv.reader(csvfile)
+		data=[row for row in reader]
 
+	for row in data[1:]:
+		url=row[34]
+		print url
+		if url!='':
+			rollcall=urllib2.urlopen(url).read()
+			dem_totals=re.compile('<party>Democratic</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
+			try:
+				dayes=int(dem_totals.findall(rollcall)[0][0])
+				row[13]=dayes
+			except:
+				pass
+
+	with open(doc2,'w') as csvfile:
+		writer=csv.writer(csvfile)
+		for row in data:
+			writer.writerow(row)
 
 def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
 	that have already been coded so it doesn't duplicate work."""
-
-	# content = open(existing_file, "r").read().replace('\r\n','\n')
-
-	# with open(existing_file, "w") as g:
-	# 	g.write(content)
-
 	with open(existing_file,'rU') as csvfile:
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
@@ -418,8 +427,9 @@ def fix_contvotes(data):
 	return data
 
 
-def code_votes(data,test=0):
-	"""Take a set of rows and code each vote"""
+def code_votes(data,test=0,vtype=-1):
+	"""Take a set of rows and code each vote. Use 'test=1' if you want to see the classification dictionaries.
+	Set 'vtype=x' where vtype"""
 	for row in data:
 		# ['cong', 'session', 'year', 'v1ex', 'vote', 'voteview', 'vote', 'issue', 'pres', 'revote', 'total', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'billtype1', 'billnum1', 'question', 'amendment', 'votetype', 'url', 'question2', 'bill_title', 'amendment2', 'amendment3']
 		question=strip(row[31])
@@ -433,7 +443,11 @@ def code_votes(data,test=0):
 
 		code=classify_question(question,question2,bill_title,amendment,votetype,billtype,amendment2,amendment3,test=test)
 
-		row[6]=code
+		if vtype==-1:
+			row[6]=code
+
+		if vtype!=-1 and code==vtype:
+			row[6]=code
 
 	return data
 
@@ -455,8 +469,9 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 			dict['56']=1
 
 		# 193: 'article i'
-		if 'article i' in question:
-			dict['193']=1
+		# what are these and why are they being coded?
+		# if 'article i' in question:
+		# 	dict['193']=1
 
 		# 63: 'motion to reconsider' and NOT 'table'
 		# if 'motion to reconsider' in question or ('sustain' in question and 'chair' in question):
@@ -499,8 +514,8 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		if ('consider' in question.split(' ') or 'consideration' in question.split(' ')) and 'postpone' not in question and 'postponing' not in question:
 			dict['84']=1
 
-		# 9: 'call of the house'
-		if 'call of house' in question:
+		# 9: billtype is quorum
+		if 'QUORUM' in billtype and 'states' not in question:
 			dict['9']=1
 
 		# 77: 'rise' NOT ('strike' OR 'stricken' OR 'striking')
@@ -630,8 +645,8 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 			if 'substitute' in amendment and ' to ' not in amendment:
 				dict['23']=1
 
-			# 22: 'amendment to [A-Z].*? ' in amendment - amendment 3 is pretty similar here
-			if ' to ' in amendment and 'substitute' not in amendment:
+			# 22: 'amendment to [A-Z].*? ' in amendment - amendment 3 is pretty similar here. Omit mentions of the senate as 'amendment to senate amendment' is really an amendment to the bill
+			if ' to ' in amendment and 'substitute' not in amendment and 'senate' not in amendment:
 				dict['22']=1
 
 			# 21: all other amendments and NOT 'committees to sit'
@@ -659,11 +674,14 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 	if len(dict.keys())==0:
 		final='69'
 
+	# sorta klugey but to be safe, override on 9s - some of these seem to pop up as amendments but these have to be quorum calls
+	if dict['9']==1:
+		final='9'
+
 	if test==1:
 		print dict
 
 	return final
-
 
 
 scrape_votes(server_file_location)
@@ -688,7 +706,18 @@ for i,row in enumerate(data):
 		a=column.replace('\n','')
 		data[i][j]=a.replace('\r','')
 
+# sort according to congress and then vote number
+data=sorted(data,key=itemgetter(0,4))
+
 with open(server_file_location,'wb') as csvfile:
 	writer=csv.writer(csvfile)
 	for row in data:
 		writer.writerow(row)
+
+
+
+
+
+
+
+

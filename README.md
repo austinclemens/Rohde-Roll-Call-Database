@@ -20,7 +20,11 @@ The following fields that were not present in the original Rohde dataset have be
 
 The remaining fields come not from the rollcall URL but instead from the Library of Congress page describing the vote. To find this page, look at one of the House Clerk's rollcall session summary pages like this one: http://clerk.house.gov/evs/2015/ROLL_000.asp. Links in the 'issue' column go to the Library of Congress page for the underlying bill. The remaining fields are drawn from these pages (for bills themselves) or from the associated amendment page (for amendments - these can be found by clicking the 'Actions' tab and finding the appropriate amendment. 
 
-7. **question2**: In the 'Actions' tab of the amendment or bill, question2 is the full description given of the rollcall vote. It is often similar to the description given to the vote by the Office of the Clerk (question). These two images show the question2 for an amendment and a bill: ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/question2_1.png "Bill question2") ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/question2_2.png "Amendment question2")
-8. **bill_title**: bill_title is the formal short title of the underlying bill. It comes from the 'Titles' tab. In the image shown here, the bill_title is 'Student Success Act': ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/titles2.png "Bill title")
-9. **amendment2**: amendment2 is from the 'Purpose' field of the amendment's 'Description' tab, as shown in this screenshot: ![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/purpose.png "Amendment2 field")
+7. **question2**: In the 'Actions' tab of the amendment or bill, question2 is the full description given of the rollcall vote. It is often similar to the description given to the vote by the Office of the Clerk (question). These two images show the question2 for an amendment and a bill: 
+![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/question2_1.png "Bill question2") 
+![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/question2_2.png "Amendment question2")
+8. **bill_title**: bill_title is the formal short title of the underlying bill. It comes from the 'Titles' tab. In the image shown here, the bill_title is 'Student Success Act': 
+![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/titles2.png "Bill title")
+9. **amendment2**: amendment2 is from the 'Purpose' field of the amendment's 'Description' tab, as shown in this screenshot: 
+![alt text](http://www.austinclemens.com/rohde_rollcalls/assets/purpose.png "Amendment2 field")
 10. **amendment3**: amendment3 was useful for a previous version of the Library of Congress site (Thomas) but does not presently have a purpose and is not used to code votes.

@@ -12,7 +12,7 @@ There is not a lot of text available to classify votes so the system is complete
 The following fields that were not present in the original Rohde dataset have been added:
 
 1. url: This is the URL to the rollcall vote record at the House Clerk's site. This is an XML file that provides many of the other fields listed below.
-1. billtype1: billtype1 is the first part of the underlying bill's designation e.g. HR, HRES, etc. It is found in the rollcall XML in legis-num field. ~~~~ <legis-num>H R 3408</legis-num> ~~~~ 
+1. billtype1: billtype1 is the first part of the underlying bill's designation e.g. HR, HRES, etc. It is found in the rollcall XML in legis-num field. `<legis-num>H R 3408</legis-num>`
 2. billnum1
 3. question
 4. amendment

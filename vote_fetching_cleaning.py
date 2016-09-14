@@ -9,7 +9,6 @@ import math
 import time
 import csv
 import os
-from operator import itemgetter
 
 server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
 
@@ -707,7 +706,11 @@ for i,row in enumerate(data):
 		data[i][j]=a.replace('\r','')
 
 # sort according to congress and then vote number
-data=sorted(data,key=itemgetter(0,4))
+temp=data[0]
+data=data[1:]
+data.sort(key=lambda x: int(x[4]))
+data.sort(key=lambda x: int(x[2]))
+data.insert(0,temp)
 
 with open(server_file_location,'wb') as csvfile:
 	writer=csv.writer(csvfile)

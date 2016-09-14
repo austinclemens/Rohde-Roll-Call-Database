@@ -203,6 +203,17 @@ def scrape_votes(existing_file):
 					question=question.replace('  ',' ')
 					question=question.strip()
 
+					# handle votes for the speaker - the ayes and nays should be the vote totals for the candidates with the first and second-most votes
+					if 'election' in question and 'speaker' in question:
+						speaker_vote_finder=re.compile('<totals-by-candidate><candidate>.*?</candidate><candidate-total>(.*?)</candidate-total></totals-by-candidate>')
+						ayes=int(speaker_vote_finder.findall(rollcall)[0])
+						nays=ayes=int(speaker_vote_finder.findall(rollcall)[1])
+						dayes=0
+						dnays=0
+						rayes=0
+						rnays=0
+						totalvotes=ayes+nays
+
 					legislation=legislation.upper()
 					legislation=legislation.replace(' ','')
 					legislation=legislation.replace('.','')

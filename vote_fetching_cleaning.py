@@ -685,7 +685,7 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		final='69'
 
 	# sorta klugey but to be safe, override on 9s - some of these seem to pop up as amendments but these have to be quorum calls
-	if dict['9']==1:
+	if '9' in dict.keys():
 		final='9'
 
 	if test==1:

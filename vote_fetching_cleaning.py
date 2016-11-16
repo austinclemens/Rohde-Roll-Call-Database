@@ -16,10 +16,12 @@ server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
 # print server_file_location
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
+request_headers = {"Accept-Language": "en-US,en;q=0.5","User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0","Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Referer": "http://pipcvotes.cacexplore.org","Connection": "keep-alive" }
 
 def geturl(url):
 	print url
-	return urllib2.urlopen(url).read()
+	request = urllib2.Request(url, headers=request_headers)
+	return urllib2.urlopen(request).read()
 
 def fix_dayes(doc,doc2):
 	with open(doc,'rU') as csvfile:
@@ -30,7 +32,7 @@ def fix_dayes(doc,doc2):
 		url=row[34]
 		print url
 		if url!='':
-			rollcall=urllib2.urlopen(url).read()
+			rollcall=geturl(url)
 			dem_totals=re.compile('<party>Democratic</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
 			try:
 				dayes=int(dem_totals.findall(rollcall)[0][0])
@@ -63,7 +65,7 @@ def scrape_votes(existing_file):
 		url='http://clerk.house.gov/evs/%s/index.asp' % (year)
 		
 		try:
-			vote=urllib2.urlopen(url).read()
+			vote=geturl(url)
 		except:
 			pass
 
@@ -79,7 +81,7 @@ def scrape_votes(existing_file):
 		for page in vote_pages:
 			print page
 			url='http://clerk.house.gov/evs/%s/%s' % (year,page)
-			votepage=urllib2.urlopen(url).read()
+			votepage=geturl(url)
 			vote_finder=re.compile('<TR><TD><A HREF="http://clerk.house.gov/cgi-bin/vote.asp\?year=.*?&rollnumber=.*?">(.*?)</A></TD>')
 			
 			# this fullvotes string changed around 4/15/2016. The old one is preserved below.
@@ -382,7 +384,7 @@ def output_training_votes(file_path='/Users/austinc/Desktop/votes.csv',target_fi
 
 def download(url):
 	try:
-		vote=urllib2.urlopen(url).read()
+		vote=geturl(url)
 		return vote
 	except:
 		time.sleep(20)

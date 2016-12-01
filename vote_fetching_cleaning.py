@@ -10,7 +10,8 @@ import time
 import csv
 import os
 
-server_file_location=os.path.dirname(os.path.realpath(__file__))+'/votes.csv'
+server_file_location=os.path.dirname(os.path.realpath(__file__))+'/house_votes.csv'
+server_file_location=os.path.dirname(os.path.realpath(__file__))+'/senate_votes.csv'
 
 # server_file_location='/Users/austinc/Desktop/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
@@ -44,6 +45,293 @@ def fix_dayes(doc,doc2):
 		writer=csv.writer(csvfile)
 		for row in data:
 			writer.writerow(row)
+
+
+def scrape_votes_senate(existing_file_senate):
+	"""Same as scrape_votes but for Senate. Take existing file, add all new votes, run new votes
+	through classifier."""
+	with open(existing_file_senate,'rU') as csvfile:
+		reader=csv.reader(csvfile)
+		data=[row for row in reader]
+
+	csvfile=open(existing_file,'a')
+	writer=csv.writer(csvfile)
+
+	compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
+	new_votes=[]
+
+	# Iterate through years from 1989 to present (Thomas only has votes >1989)
+	current_year=datetime.date.today().year
+	for year in range(1989,current_year+1,1):
+		print year
+		# convert year to congress/session
+		congress=math.floor((year-1787)/2)
+		session=(year-1)%2+1
+		url='http://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_'+congress+'_'+session+'.htm' % (year)
+		
+		try:
+			vote=geturl(url)
+		except:
+			pass
+
+		# get all votes for the year
+		# compare against existing file to see if the vote is already in the database
+		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress=114&session=2&vote=(.*?)">')
+		fullvote_finder=re.compile('<td valign="top" class="contenttext">(.*?)</td>')
+
+		votes=vote_finder.findall(votepage)
+		fullvotes=fullvote_finder.findall(votepage)
+		votedescs=fullvotes[2::5]
+		billpages=fullvotes[3::5]
+
+		for vote in votes:
+			if [year,int(vote)] not in compare_votes:
+				print vote
+				vote_s="%05d" % (int(vote))
+				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+congress+'&session='+session+'&vote='+vote_s
+				rollcall=geturl(url)
+######### HOLD ########
+				# Go to all actions page for the legislation, find the action that includes the roll call, save the full text into question2
+				question2=''
+				amendment2=''
+				amendment3=''
+				amendment=''
+				for fullvote in fullvotes:
+					if int(vote)==int(fullvote[0]):
+						bill_details=geturl(fullvote[1])
+						bill_title_details=geturl(fullvote[1]+'/titles')
+						action_url=geturl(fullvote[1]+'/all-actions')
+						# bill_title_finder=re.compile('<b>Latest Title:</b>(.*?)\n')
+						bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
+						# all_action_finder=re.compile('<a href="(.*?)">All Congressional Actions\n</a>')
+						# all_action_amendment_finder=re.compile('<a href="(.*?)">All Congressional Actions with Amendments</a>')
+						# action_page=all_action_finder.findall(bill_details)
+						# amend_page=all_action_amendment_finder.findall(bill_details)
+
+						try:
+							bill_title=bill_title_finder.findall(bill_title_details)[0][1].replace('\n','').replace('\r','')
+						except:
+							bill_title=''
+
+						# if len(amend_page)>0:
+						# 	page=amend_page[0]
+						# else:
+
+						# 	page=action_page[0]
+
+						try:
+							# action_url='http://thomas.loc.gov'+page
+							actions=action_url
+							# action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
+							action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
+							# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
+							amendment_finder=re.compile('<a href="(.*?)">')
+							all_actions=action_finder.findall(actions)[0].strip()
+							# for action in all_actions:
+								# if url in action:
+							question2=all_actions.replace('\n','').replace('\r','')
+							if 'amendment' in question2:
+								amend_url=amendment_finder.findall(question2)[0]
+								amendment_page=geturl('https://www.congress.gov'+amend_url)
+
+								amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
+								amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
+
+								try:
+									amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+								except:
+									amendment2=''
+								try:
+									amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+								except:
+									amendment3=''
+
+						except:
+							print "Couldn't find question."
+							question2=''
+							amendment2=''
+							amendment3=''
+
+				# define various regular expressions
+				congress_finder=re.compile('<congress>(.*?)</congress>')
+				session_finder=re.compile('<session>(.)..</session>')
+				vote_totals=re.compile('<total-stub>Totals</total-stub>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
+				rep_totals=re.compile('<party>Republican</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
+				dem_totals=re.compile('<party>Democratic</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
+				leg_finder=re.compile('<legislator .*?party="(.*?)" state="(.*?)" role="legislator">.*?</legislator><vote>(.*?)</vote>')
+				legis_num_finder=re.compile('<legis-num>(.*?)</legis-num>')
+				question_finder=re.compile('<vote-question>(.*?)</vote-question>')
+				amend_author=re.compile('<amendment-author>(.*?)</amendment-author>')
+				vote_desc=re.compile('<vote-desc>(.*?)</vote-desc>')
+
+				congress=congress_finder.findall(rollcall)[0]
+				session=session_finder.findall(rollcall)[0]
+				try:
+					totalvotes=int(vote_totals.findall(rollcall)[0][0])+int(vote_totals.findall(rollcall)[0][1])
+					ayes=int(vote_totals.findall(rollcall)[0][0])
+					nays=int(vote_totals.findall(rollcall)[0][1])
+					dayes=int(dem_totals.findall(rollcall)[0][0])
+					dnays=int(dem_totals.findall(rollcall)[0][1])
+					rayes=int(rep_totals.findall(rollcall)[0][0])
+					rnays=int(rep_totals.findall(rollcall)[0][1])
+				except:
+					pass
+				legislators=leg_finder.findall(rollcall)
+				try:
+					legislation=legis_num_finder.findall(rollcall)[0]
+				except:
+					legislation='Speaker'
+				amendment=amend_author.findall(rollcall)
+				votetype=vote_desc.findall(rollcall)
+				question=question_finder.findall(rollcall)[0]
+				# question=q_finder.findall(vote)[0]
+				question=question.lower()
+				question=question.replace('the','')
+				question=question.replace(',','')
+				question=question.replace('.','')
+				question=question.replace('  ',' ')
+				question=question.strip()
+
+				# handle votes for the speaker - the ayes and nays should be the vote totals for the candidates with the first and second-most votes
+				if 'election' in question and 'speaker' in question:
+					speaker_vote_finder=re.compile('<totals-by-candidate><candidate>.*?</candidate><candidate-total>(.*?)</candidate-total></totals-by-candidate>')
+					ayes=int(speaker_vote_finder.findall(rollcall)[0])
+					nays=ayes=int(speaker_vote_finder.findall(rollcall)[1])
+					dayes=0
+					dnays=0
+					rayes=0
+					rnays=0
+					totalvotes=ayes+nays
+
+				legislation=legislation.upper()
+				legislation=legislation.replace(' ','')
+				legislation=legislation.replace('.','')
+				billtype=re.compile('([A-Z]{1,6})')
+				billnumb=re.compile('([0-9]{1,6})')
+				try:
+					bill_type=billtype.findall(legislation)[0]
+				except:
+					bill_type=''
+				try:
+					bill_numb=billnumb.findall(legislation)[0]
+				except:
+					bill_numb=''
+				try:
+					amendment=amendment[0]
+				except:
+					amendment=''
+				try:
+					votetype=votetype[0]
+				except:
+					votetype=''
+				# try:
+				# 	question=question[0]
+				# except:
+				# 	question=''
+
+				if question=='ELECTION OF SPEAKER':
+					cand_finder=re.compile('<totals-by-candidate><candidate>(.*?)</candidate><candidate-total>(.*?)</candidate-total></totals-by-candidate>')
+					candidates=cand_finder.findall(rollcall)
+					candidate1=candidates[0][0]
+					candidate2=candidates[0][1]
+					ayes=candidates[0][1]
+					nays=candidates[1][1]
+					dayes=0
+					dnays=0
+					rayes=0
+					rnays=0
+
+					totalvotes=0
+					for cand in candidates:
+						totalvotes=totalvotes+int(cand[1])
+
+				# tally up north/south dems, north/south repubs
+				ndayes=0
+				ndnays=0
+				sdayes=0
+				sdnays=0
+				nrayes=0
+				nrnays=0
+				srayes=0
+				srnays=0
+				# legs are [party,state,vote]
+				for leg in legislators:
+					if leg[0]=='D':
+						if leg[1] not in southern_states:
+							if leg[2]=='Yea':
+								ndayes=ndayes+1
+							if leg[2]=='Nay' or leg[2]=='No':
+								ndnays=ndnays+1
+						if leg[1] in southern_states:
+							if leg[2]=='Yea':
+								sdayes=sdayes+1
+							if leg[2]=='Nay' or leg[2]=='No':
+								sdnays=sdnays+1
+
+					if leg[0]=='R':
+						if leg[1] not in southern_states:
+							if leg[2]=='Yea':
+								nrayes=nrayes+1
+							if leg[2]=='Nay' or leg[2]=='No':
+								nrnays=nrnays+1
+						if leg[1] in southern_states:
+							if leg[2]=='Yea':
+								srayes=srayes+1
+							if leg[2]=='Nay' or leg[2]=='No':
+								srnays=srnays+1
+
+
+				unity=0
+				try:
+					if ((dayes/(dayes+dnays))>.5 and (rnays/(rayes+rnays))>.5) or ((dnays/(dayes+dnays))>.5 and (rayes/(rayes+rnays))>.5):
+						unity=1
+				except:
+					pass
+
+				unanimous=0
+				try:
+					if (ayes/(ayes+nays))>.9 or (nays/(ayes+nays))>.9:
+						unanimous=1
+				except:
+					pass
+
+				coalition=0
+				try:
+					if ((ndayes/(ndayes+ndnays))>.5 and (rnays/(rayes+rnays))>.5 and (sdnays/(sdayes+sdnays))>.5) or ((ndnays/(ndayes+ndnays))>.5 and (rayes/(rayes+rnays))>.5 and (sdayes/(sdayes+sdnays))>.5):
+						coalition=1
+				except:
+					pass
+
+				ndr=0
+				try:
+					if ((ndayes/(ndayes+ndnays))>.5 and (rnays/(rayes+rnays))>.5) or ((ndnays/(ndayes+ndnays))>.5 and (rayes/(rayes+rnays))>.5):
+						ndr=1
+				except:
+					pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def scrape_votes(existing_file):
 	"""The work horse function - looks for new votes and codes them. Takes a csv file of votes
@@ -697,6 +985,7 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 
 
 scrape_votes(server_file_location)
+scrape_votes(server_file_location_senate)
 
 with open(server_file_location,'rU') as csvfile:
 	reader=csv.reader(csvfile)

@@ -76,96 +76,79 @@ def scrape_votes_senate(existing_file_senate):
 
 		# get all votes for the year
 		# compare against existing file to see if the vote is already in the database
+		# vote_finder gets all vote numbers for the year
 		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress=114&session=2&vote=(.*?)">')
+		# fullvote_finder pulls the data in each row - date/tally/result/question/issue
 		fullvote_finder=re.compile('<td valign="top" class="contenttext">(.*?)</td>')
 
 		votes=vote_finder.findall(votepage)
 		fullvotes=fullvote_finder.findall(votepage)
+		# the question field - a short description of the vote
 		votedescs=fullvotes[2::5]
+		# links to the bill at issue on congress.gov
 		billpages=fullvotes[3::5]
 
-		for vote in votes:
+		for i,vote in enumerate(votes):
 			if [year,int(vote)] not in compare_votes:
 				print vote
 				vote_s="%05d" % (int(vote))
 				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+congress+'&session='+session+'&vote='+vote_s
+				# rollcall holds the senate rollcall vote page. ex: http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress=114&session=2&vote=00155
 				rollcall=geturl(url)
-######### HOLD ########
+				votedesc=votedescs[i]
+				billpage=billpages[i]
+
+				# get data from the bill page
 				# Go to all actions page for the legislation, find the action that includes the roll call, save the full text into question2
 				question2=''
 				amendment2=''
 				amendment3=''
 				amendment=''
-				for fullvote in fullvotes:
-					if int(vote)==int(fullvote[0]):
-						bill_details=geturl(fullvote[1])
-						bill_title_details=geturl(fullvote[1]+'/titles')
-						action_url=geturl(fullvote[1]+'/all-actions')
-						# bill_title_finder=re.compile('<b>Latest Title:</b>(.*?)\n')
-						bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
-						# all_action_finder=re.compile('<a href="(.*?)">All Congressional Actions\n</a>')
-						# all_action_amendment_finder=re.compile('<a href="(.*?)">All Congressional Actions with Amendments</a>')
-						# action_page=all_action_finder.findall(bill_details)
-						# amend_page=all_action_amendment_finder.findall(bill_details)
+
+				bill_details=geturl(billpage)
+				bill_title_details=geturl(billpage+'/titles')
+				action_url=geturl(billpage+'/all-actions')
+				bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
+
+				try:
+					bill_title=bill_title_finder.findall(bill_title_details)[0][1].replace('\n','').replace('\r','')
+				except:
+					bill_title=''
+
+				try:
+					actions=action_url
+					action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
+					amendment_finder=re.compile('<a href="(.*?)">')
+					all_actions=action_finder.findall(actions)[0].strip()
+					question2=all_actions.replace('\n','').replace('\r','')
+					if 'amendment' in question2:
+						amend_url=amendment_finder.findall(question2)[0]
+						amendment_page=geturl('https://www.congress.gov'+amend_url)
+						amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
+						amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
 
 						try:
-							bill_title=bill_title_finder.findall(bill_title_details)[0][1].replace('\n','').replace('\r','')
+							amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
 						except:
-							bill_title=''
-
-						# if len(amend_page)>0:
-						# 	page=amend_page[0]
-						# else:
-
-						# 	page=action_page[0]
-
-						try:
-							# action_url='http://thomas.loc.gov'+page
-							actions=action_url
-							# action_finder=re.compile('<strong>.*?</strong><dd>(.*?)(?:\n<dt>|\n</dl>)',re.DOTALL)
-							action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
-							# amendment_finder=re.compile('<a href="/cgi-bin/bdquery/(.*?)">')
-							amendment_finder=re.compile('<a href="(.*?)">')
-							all_actions=action_finder.findall(actions)[0].strip()
-							# for action in all_actions:
-								# if url in action:
-							question2=all_actions.replace('\n','').replace('\r','')
-							if 'amendment' in question2:
-								amend_url=amendment_finder.findall(question2)[0]
-								amendment_page=geturl('https://www.congress.gov'+amend_url)
-
-								amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
-								amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
-
-								try:
-									amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-								except:
-									amendment2=''
-								try:
-									amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-								except:
-									amendment3=''
-
-						except:
-							print "Couldn't find question."
-							question2=''
 							amendment2=''
+						try:
+							amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+						except:
 							amendment3=''
 
-				# define various regular expressions
-				congress_finder=re.compile('<congress>(.*?)</congress>')
-				session_finder=re.compile('<session>(.)..</session>')
-				vote_totals=re.compile('<total-stub>Totals</total-stub>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
-				rep_totals=re.compile('<party>Republican</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
-				dem_totals=re.compile('<party>Democratic</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
+				except:
+					print "Couldn't find question."
+					question2=''
+					amendment2=''
+					amendment3=''
+######### HOLD ########
+				# get data from the rollcall page
+				vote_totals=re.compile('<td width="50%" class="contenttext">YEAs</td><td width="25%" class="contenttext" align="right">(.*?)</td>\n    </tr>\n    <tr>\n        <td></td><td width="50%" class="contenttext">NAYs</td><td width="25%" class="contenttext" align="right">(.*?)</td>')
 				leg_finder=re.compile('<legislator .*?party="(.*?)" state="(.*?)" role="legislator">.*?</legislator><vote>(.*?)</vote>')
-				legis_num_finder=re.compile('<legis-num>(.*?)</legis-num>')
 				question_finder=re.compile('<vote-question>(.*?)</vote-question>')
 				amend_author=re.compile('<amendment-author>(.*?)</amendment-author>')
 				vote_desc=re.compile('<vote-desc>(.*?)</vote-desc>')
 
-				congress=congress_finder.findall(rollcall)[0]
-				session=session_finder.findall(rollcall)[0]
 				try:
 					totalvotes=int(vote_totals.findall(rollcall)[0][0])+int(vote_totals.findall(rollcall)[0][1])
 					ayes=int(vote_totals.findall(rollcall)[0][0])
@@ -182,7 +165,7 @@ def scrape_votes_senate(existing_file_senate):
 				except:
 					legislation='Speaker'
 				amendment=amend_author.findall(rollcall)
-				votetype=vote_desc.findall(rollcall)
+				votetype=votedesc
 				question=question_finder.findall(rollcall)[0]
 				# question=q_finder.findall(vote)[0]
 				question=question.lower()

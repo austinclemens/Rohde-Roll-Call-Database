@@ -97,6 +97,8 @@ def scrape_votes_senate(existing_file_senate):
 				rollcall=geturl(url)
 				votedesc=votedescs[i]
 				billpage=billpages[i]
+				bill_finder=re.compile('>([A-Za-z\.\s]+)([0-9]+)<')
+				billdetails=bill_finder.findall(billpage)[0]
 
 				# get data from the bill page
 				# Go to all actions page for the legislation, find the action that includes the roll call, save the full text into question2
@@ -141,32 +143,46 @@ def scrape_votes_senate(existing_file_senate):
 					question2=''
 					amendment2=''
 					amendment3=''
-######### HOLD ########
+
 				# get data from the rollcall page
 				vote_totals=re.compile('<td width="50%" class="contenttext">YEAs</td><td width="25%" class="contenttext" align="right">(.*?)</td>\n    </tr>\n    <tr>\n        <td></td><td width="50%" class="contenttext">NAYs</td><td width="25%" class="contenttext" align="right">(.*?)</td>')
-				leg_finder=re.compile('<legislator .*?party="(.*?)" state="(.*?)" role="legislator">.*?</legislator><vote>(.*?)</vote>')
-				question_finder=re.compile('<vote-question>(.*?)</vote-question>')
-				amend_author=re.compile('<amendment-author>(.*?)</amendment-author>')
-				vote_desc=re.compile('<vote-desc>(.*?)</vote-desc>')
+				leg_block_finder=re.compile('Alphabetical by Senator Name(.*?)By Vote Position', re.DOTALL)
+				leg_finder=re.compile('>(.*?) \(([A-Z])-([A-Z]{2})\), <b>(Yea|Nay|Not Voting)</b>')
+				# question_finder=re.compile('<vote-question>(.*?)</vote-question>')
+				# amend_author=re.compile('<amendment-author>(.*?)</amendment-author>')
+				# vote_desc=re.compile('<vote-desc>(.*?)</vote-desc>')
+
+				leg_block=leg_block_finder.findall(rollcall)
+				legislators=leg_finder.findall(leg_block)
+
+				dayes=0
+				dnays=0
+				rayes=0
+				rnays=0
+
+				for leg in legislators:
+					if leg[1]=='D' and leg[3]=='Yea':
+						dayes=dayes+1
+					if leg[1]=='D' and leg[3]=='Nay':
+						dnays=dnays+1
+					if leg[1]=='R' and leg[3]=='Yea':
+						rayes=rayes+1
+					if leg[1]=='R' and leg[3]=='Nay':
+						rnays=rnays+1
 
 				try:
 					totalvotes=int(vote_totals.findall(rollcall)[0][0])+int(vote_totals.findall(rollcall)[0][1])
 					ayes=int(vote_totals.findall(rollcall)[0][0])
 					nays=int(vote_totals.findall(rollcall)[0][1])
-					dayes=int(dem_totals.findall(rollcall)[0][0])
-					dnays=int(dem_totals.findall(rollcall)[0][1])
-					rayes=int(rep_totals.findall(rollcall)[0][0])
-					rnays=int(rep_totals.findall(rollcall)[0][1])
 				except:
 					pass
-				legislators=leg_finder.findall(rollcall)
-				try:
-					legislation=legis_num_finder.findall(rollcall)[0]
-				except:
-					legislation='Speaker'
-				amendment=amend_author.findall(rollcall)
-				votetype=votedesc
-				question=question_finder.findall(rollcall)[0]
+				
+				bill_type=billdetails[0].replace('.','').replace(' ','')
+				bill_numb=billdetails[0]
+
+				# amendment=amend_author.findall(rollcall)
+				votetype=bill_type
+				question=votedesc
 				# question=q_finder.findall(vote)[0]
 				question=question.lower()
 				question=question.replace('the','')
@@ -174,59 +190,6 @@ def scrape_votes_senate(existing_file_senate):
 				question=question.replace('.','')
 				question=question.replace('  ',' ')
 				question=question.strip()
-
-				# handle votes for the speaker - the ayes and nays should be the vote totals for the candidates with the first and second-most votes
-				if 'election' in question and 'speaker' in question:
-					speaker_vote_finder=re.compile('<totals-by-candidate><candidate>.*?</candidate><candidate-total>(.*?)</candidate-total></totals-by-candidate>')
-					ayes=int(speaker_vote_finder.findall(rollcall)[0])
-					nays=ayes=int(speaker_vote_finder.findall(rollcall)[1])
-					dayes=0
-					dnays=0
-					rayes=0
-					rnays=0
-					totalvotes=ayes+nays
-
-				legislation=legislation.upper()
-				legislation=legislation.replace(' ','')
-				legislation=legislation.replace('.','')
-				billtype=re.compile('([A-Z]{1,6})')
-				billnumb=re.compile('([0-9]{1,6})')
-				try:
-					bill_type=billtype.findall(legislation)[0]
-				except:
-					bill_type=''
-				try:
-					bill_numb=billnumb.findall(legislation)[0]
-				except:
-					bill_numb=''
-				try:
-					amendment=amendment[0]
-				except:
-					amendment=''
-				try:
-					votetype=votetype[0]
-				except:
-					votetype=''
-				# try:
-				# 	question=question[0]
-				# except:
-				# 	question=''
-
-				if question=='ELECTION OF SPEAKER':
-					cand_finder=re.compile('<totals-by-candidate><candidate>(.*?)</candidate><candidate-total>(.*?)</candidate-total></totals-by-candidate>')
-					candidates=cand_finder.findall(rollcall)
-					candidate1=candidates[0][0]
-					candidate2=candidates[0][1]
-					ayes=candidates[0][1]
-					nays=candidates[1][1]
-					dayes=0
-					dnays=0
-					rayes=0
-					rnays=0
-
-					totalvotes=0
-					for cand in candidates:
-						totalvotes=totalvotes+int(cand[1])
 
 				# tally up north/south dems, north/south repubs
 				ndayes=0
@@ -237,30 +200,30 @@ def scrape_votes_senate(existing_file_senate):
 				nrnays=0
 				srayes=0
 				srnays=0
-				# legs are [party,state,vote]
+				# legs are [name,party,state,vote]
 				for leg in legislators:
-					if leg[0]=='D':
-						if leg[1] not in southern_states:
-							if leg[2]=='Yea':
+					if leg[1]=='D':
+						if leg[2] not in southern_states:
+							if leg[3]=='Yea':
 								ndayes=ndayes+1
-							if leg[2]=='Nay' or leg[2]=='No':
+							if leg[3]=='Nay' or leg[3]=='No':
 								ndnays=ndnays+1
-						if leg[1] in southern_states:
-							if leg[2]=='Yea':
+						if leg[2] in southern_states:
+							if leg[3]=='Yea':
 								sdayes=sdayes+1
-							if leg[2]=='Nay' or leg[2]=='No':
+							if leg[3]=='Nay' or leg[3]=='No':
 								sdnays=sdnays+1
 
-					if leg[0]=='R':
-						if leg[1] not in southern_states:
-							if leg[2]=='Yea':
+					if leg[1]=='R':
+						if leg[2] not in southern_states:
+							if leg[3]=='Yea':
 								nrayes=nrayes+1
-							if leg[2]=='Nay' or leg[2]=='No':
+							if leg[3]=='Nay' or leg[3]=='No':
 								nrnays=nrnays+1
-						if leg[1] in southern_states:
-							if leg[2]=='Yea':
+						if leg[2] in southern_states:
+							if leg[3]=='Yea':
 								srayes=srayes+1
-							if leg[2]=='Nay' or leg[2]=='No':
+							if leg[3]=='Nay' or leg[3]=='No':
 								srnays=srnays+1
 
 
@@ -292,28 +255,20 @@ def scrape_votes_senate(existing_file_senate):
 				except:
 					pass
 
+				# try:
+				votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
+				row=[congress,session,year,vote,'','',votecode,'','','',
+					totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
+					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
+					question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
+				code_votes([row])
+				print url
+				print row
+				writer.writerow(row)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+				# except:
+					# print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
 
 
 def scrape_votes(existing_file):
@@ -686,7 +641,6 @@ def find_conflicts(rows):
 				conflict_dict[question][row[6]]=0
 			if row[6] in conflict_dict[question].keys():
 				conflict_dict[question][row[6]]=conflict_dict[question][row[6]]+1
-
 	return conflict_dict
 
 
@@ -706,7 +660,6 @@ def fix_contvotes(data):
 				pass
 		else:
 			row[4]=row[3]
-
 	return data
 
 

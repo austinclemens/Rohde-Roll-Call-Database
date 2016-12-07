@@ -10,8 +10,8 @@ import time
 import csv
 import os
 
-server_file_location=os.path.dirname(os.path.realpath(__file__))+'/house_votes.csv'
-server_file_location=os.path.dirname(os.path.realpath(__file__))+'/senate_votes.csv'
+# server_file_location=os.path.dirname(os.path.realpath(__file__))+'/house_votes.csv'
+# server_file_location_senate=os.path.dirname(os.path.realpath(__file__))+'/senate_votes.csv'
 
 # server_file_location='/Users/austinc/Desktop/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
@@ -50,14 +50,15 @@ def fix_dayes(doc,doc2):
 def scrape_votes_senate(existing_file_senate):
 	"""Same as scrape_votes but for Senate. Take existing file, add all new votes, run new votes
 	through classifier."""
-	with open(existing_file_senate,'rU') as csvfile:
-		reader=csv.reader(csvfile)
-		data=[row for row in reader]
+	# with open(existing_file_senate,'rU') as csvfile:
+	# 	reader=csv.reader(csvfile)
+	# 	data=[row for row in reader]
 
-	csvfile=open(existing_file,'a')
+	csvfile=open(existing_file_senate,'a')
 	writer=csv.writer(csvfile)
 
-	compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
+	# compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
+	compare_votes=[]
 	new_votes=[]
 
 	# Iterate through years from 1989 to present (Thomas only has votes >1989)
@@ -67,17 +68,17 @@ def scrape_votes_senate(existing_file_senate):
 		# convert year to congress/session
 		congress=math.floor((year-1787)/2)
 		session=(year-1)%2+1
-		url='http://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_'+congress+'_'+session+'.htm' % (year)
+		url='http://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_'+str(int(congress))+'_'+str(int(session))+'.htm'
 		
 		try:
-			vote=geturl(url)
+			votepage=geturl(url)
 		except:
 			pass
 
 		# get all votes for the year
 		# compare against existing file to see if the vote is already in the database
 		# vote_finder gets all vote numbers for the year
-		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress=114&session=2&vote=(.*?)">')
+		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress='+str(int(congress))+'&session='+str(int(session))+'&vote=(.*?)">')
 		# fullvote_finder pulls the data in each row - date/tally/result/question/issue
 		fullvote_finder=re.compile('<td valign="top" class="contenttext">(.*?)</td>')
 
@@ -89,63 +90,71 @@ def scrape_votes_senate(existing_file_senate):
 		billpages=fullvotes[3::5]
 
 		for i,vote in enumerate(votes):
+			print i,year,int(vote)
 			if [year,int(vote)] not in compare_votes:
 				print vote
 				vote_s="%05d" % (int(vote))
-				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+congress+'&session='+session+'&vote='+vote_s
+				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+str(int(congress))+'&session='+str(int(session))+'&vote='+vote_s
 				# rollcall holds the senate rollcall vote page. ex: http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress=114&session=2&vote=00155
 				rollcall=geturl(url)
 				votedesc=votedescs[i]
 				billpage=billpages[i]
-				bill_finder=re.compile('>([A-Za-z\.\s]+)([0-9]+)<')
-				billdetails=bill_finder.findall(billpage)[0]
+				print billpage
 
-				# get data from the bill page
-				# Go to all actions page for the legislation, find the action that includes the roll call, save the full text into question2
-				question2=''
-				amendment2=''
-				amendment3=''
-				amendment=''
+				if billpage!='n/a' and 'Treaty' not in billpage and 'PN' not in billpage:
 
-				bill_details=geturl(billpage)
-				bill_title_details=geturl(billpage+'/titles')
-				action_url=geturl(billpage+'/all-actions')
-				bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
+					bill_finder=re.compile('>([A-Za-z\.\s]+)([0-9]+)<')
+					bill_url_finder=re.compile('<a href="(.*?)">.*?</a>')
 
-				try:
-					bill_title=bill_title_finder.findall(bill_title_details)[0][1].replace('\n','').replace('\r','')
-				except:
-					bill_title=''
+					billdetails=bill_finder.findall(billpage)[0]
+					billurl=bill_url_finder.findall(billpage)[0]
 
-				try:
-					actions=action_url
-					action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
-					amendment_finder=re.compile('<a href="(.*?)">')
-					all_actions=action_finder.findall(actions)[0].strip()
-					question2=all_actions.replace('\n','').replace('\r','')
-					if 'amendment' in question2:
-						amend_url=amendment_finder.findall(question2)[0]
-						amendment_page=geturl('https://www.congress.gov'+amend_url)
-						amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
-						amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
-
-						try:
-							amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-						except:
-							amendment2=''
-						try:
-							amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
-						except:
-							amendment3=''
-
-				except:
-					print "Couldn't find question."
+					# get data from the bill page
+					# Go to all actions page for the legislation, find the action that includes the roll call, save the full text into question2
 					question2=''
 					amendment2=''
 					amendment3=''
+					amendment=''
+
+					bill_details=geturl(billurl)
+					bill_title_details=geturl(billurl+'/titles')
+					action_url=geturl(billurl+'/all-actions')
+					bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
+
+					try:
+						bill_title=bill_title_finder.findall(bill_title_details)[0][1].replace('\n','').replace('\r','')
+					except:
+						bill_title=''
+
+					try:
+						actions=action_url
+						action_finder=re.compile('<td class="actions">\n(.*?)\(<a target="_blank" href="'+url)
+						amendment_finder=re.compile('<a href="(.*?)">')
+						all_actions=action_finder.findall(actions)[0].strip()
+						question2=all_actions.replace('\n','').replace('\r','')
+						if 'amendment' in question2:
+							amend_url=amendment_finder.findall(question2)[0]
+							amendment_page=geturl('https://www.congress.gov'+amend_url)
+							amendment2finder=re.compile('<h3>Purpose:</h3>.*?<p>(.*?)</p>')
+							amendment3finder=re.compile('<div id="main" class="wrapper_std" role="main"><p>(.*?)</p>')
+
+							try:
+								amendment2=amendment2finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+							except:
+								amendment2=''
+							try:
+								amendment3=amendment3finder.findall(amendment_page)[0].replace('\n','').replace('\r','')
+							except:
+								amendment3=''
+
+					except:
+						print "Couldn't find question."
+						question2=''
+						amendment2=''
+						amendment3=''
 
 				# get data from the rollcall page
-				vote_totals=re.compile('<td width="50%" class="contenttext">YEAs</td><td width="25%" class="contenttext" align="right">(.*?)</td>\n    </tr>\n    <tr>\n        <td></td><td width="50%" class="contenttext">NAYs</td><td width="25%" class="contenttext" align="right">(.*?)</td>')
+				vote_totals=re.compile('<td width="50%" class="contenttext">(?:YEAs|Guilty)</td><td width="25%" class="contenttext" align="right">(.*?)</td>\n    </tr>\n    <tr>\n        <td></td><td width="50%" class="contenttext">(?:NAYs|Not Guilty)</td><td width="25%" class="contenttext" align="right">(.*?)</td>')
 				leg_block_finder=re.compile('Alphabetical by Senator Name(.*?)By Vote Position', re.DOTALL)
 				leg_finder=re.compile('>(.*?) \(([A-Z])-([A-Z]{2})\), <b>(Yea|Nay|Not Voting)</b>')
 				# question_finder=re.compile('<vote-question>(.*?)</vote-question>')
@@ -153,7 +162,7 @@ def scrape_votes_senate(existing_file_senate):
 				# vote_desc=re.compile('<vote-desc>(.*?)</vote-desc>')
 
 				leg_block=leg_block_finder.findall(rollcall)
-				legislators=leg_finder.findall(leg_block)
+				legislators=leg_finder.findall(leg_block[0])
 
 				dayes=0
 				dnays=0
@@ -256,13 +265,13 @@ def scrape_votes_senate(existing_file_senate):
 					pass
 
 				# try:
-				votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
+				# votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
-				row=[congress,session,year,vote,'','',votecode,'','','',
+				row=[congress,session,year,vote,'','','votecode','','','',
 					totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
 					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
 					question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
-				code_votes([row])
+				# code_votes([row])
 				print url
 				print row
 				writer.writerow(row)
@@ -920,40 +929,40 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 	return final
 
 
-scrape_votes(server_file_location)
-scrape_votes(server_file_location_senate)
+# scrape_votes(server_file_location)
+# scrape_votes(server_file_location_senate)
 
-with open(server_file_location,'rU') as csvfile:
-	reader=csv.reader(csvfile)
-	data=[row for row in reader]
+# with open(server_file_location,'rU') as csvfile:
+# 	reader=csv.reader(csvfile)
+# 	data=[row for row in reader]
 
-data=fix_contvotes(data)
-with open(server_file_location,'wb') as csvfile:
-	writer=csv.writer(csvfile)
-	for row in data:
-		writer.writerow(row)
+# data=fix_contvotes(data)
+# with open(server_file_location,'wb') as csvfile:
+# 	writer=csv.writer(csvfile)
+# 	for row in data:
+# 		writer.writerow(row)
 
-# remove all newline characters within text fields
-with open(server_file_location,'rU') as csvfile:
-	reader=csv.reader(csvfile)
-	data=[row for row in reader]
+# # remove all newline characters within text fields
+# with open(server_file_location,'rU') as csvfile:
+# 	reader=csv.reader(csvfile)
+# 	data=[row for row in reader]
 
-for i,row in enumerate(data):
-	for j,column in enumerate(row):
-		a=column.replace('\n','')
-		data[i][j]=a.replace('\r','')
+# for i,row in enumerate(data):
+# 	for j,column in enumerate(row):
+# 		a=column.replace('\n','')
+# 		data[i][j]=a.replace('\r','')
 
-# sort according to congress and then vote number
-temp=data[0]
-data=data[1:]
-data.sort(key=lambda x: int(x[4]))
-data.sort(key=lambda x: int(x[2]))
-data.insert(0,temp)
+# # sort according to congress and then vote number
+# temp=data[0]
+# data=data[1:]
+# data.sort(key=lambda x: int(x[4]))
+# data.sort(key=lambda x: int(x[2]))
+# data.insert(0,temp)
 
-with open(server_file_location,'wb') as csvfile:
-	writer=csv.writer(csvfile)
-	for row in data:
-		writer.writerow(row)
+# with open(server_file_location,'wb') as csvfile:
+# 	writer=csv.writer(csvfile)
+# 	for row in data:
+# 		writer.writerow(row)
 
 
 

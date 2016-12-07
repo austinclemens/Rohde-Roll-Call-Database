@@ -117,6 +117,8 @@ def scrape_votes_senate(existing_file_senate):
 					amendment=''
 
 					bill_details=geturl(billurl)
+					proper_url_finder=re.compile('<meta name="canonical" content="(.*?)">')
+					billurl=proper_url_finder.findall(bill_details)[0]
 					bill_title_details=geturl(billurl+'/titles')
 					action_url=geturl(billurl+'/all-actions')
 					bill_title_finder=re.compile("<h4>Official Title as Introduced:</h4>\r\n(.*?)<p>(.*?)<br /></p>")
@@ -187,10 +189,11 @@ def scrape_votes_senate(existing_file_senate):
 					pass
 				
 				bill_type=billdetails[0].replace('.','').replace(' ','')
-				bill_numb=billdetails[0]
+				bill_numb=billdetails[1]
 
 				# amendment=amend_author.findall(rollcall)
-				votetype=bill_type
+				# There's really no point popuating votetype on the Senate side - it's just the 2nd sentence of question
+				votetype=''
 				question=votedesc
 				# question=q_finder.findall(vote)[0]
 				question=question.lower()

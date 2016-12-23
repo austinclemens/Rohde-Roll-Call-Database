@@ -18,6 +18,7 @@ import os
 # print server_file_location
 southern_states=['AL','AR','FL','GA','KY','LA','MS','NC','OK','SC','TN','TX','VA']
 request_headers = {"Accept-Language": "en-US,en;q=0.5","User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0","Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Referer": "http://pipcvotes.cacexplore.org","Connection": "keep-alive" }
+monthdict=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
 
 def geturl(url):
 	print url
@@ -50,20 +51,20 @@ def fix_dayes(doc,doc2):
 def scrape_votes_senate(existing_file_senate):
 	"""Same as scrape_votes but for Senate. Take existing file, add all new votes, run new votes
 	through classifier."""
-	# with open(existing_file_senate,'rU') as csvfile:
-	# 	reader=csv.reader(csvfile)
-	# 	data=[row for row in reader]
+	with open(existing_file_senate,'rU') as csvfile:
+		reader=csv.reader(csvfile)
+		data=[row for row in reader]
 
 	csvfile=open(existing_file_senate,'a')
 	writer=csv.writer(csvfile)
 
-	# compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
-	compare_votes=[]
+	compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
 	new_votes=[]
 
 	# Iterate through years from 1989 to present (Thomas only has votes >1989)
 	current_year=datetime.date.today().year
-	for year in range(1989,current_year+1,1):
+	# for year in range(1989,current_year+1,1):
+	for year in range(1989,2018,1):
 		print year
 		# convert year to congress/session
 		congress=math.floor((year-1787)/2)
@@ -80,7 +81,7 @@ def scrape_votes_senate(existing_file_senate):
 		# vote_finder gets all vote numbers for the year
 		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress='+str(int(congress))+'&session='+str(int(session))+'&vote=(.*?)">')
 		# fullvote_finder pulls the data in each row - date/tally/result/question/issue
-		fullvote_finder=re.compile('<td valign="top" class="contenttext">(.*?)</td>')
+		fullvote_finder=re.compile('<td valign="top" class="contenttext">(.*?)</td>',re.DOTALL)
 
 		votes=vote_finder.findall(votepage)
 		fullvotes=fullvote_finder.findall(votepage)
@@ -88,6 +89,10 @@ def scrape_votes_senate(existing_file_senate):
 		votedescs=fullvotes[2::5]
 		# links to the bill at issue on congress.gov
 		billpages=fullvotes[3::5]
+		# date of vote
+		dates=fullvotes[4::5]
+		# result
+		results=fullvotes[1::5]
 
 		for i,vote in enumerate(votes):
 			print i,year,int(vote)
@@ -99,7 +104,48 @@ def scrape_votes_senate(existing_file_senate):
 				rollcall=geturl(url)
 				votedesc=votedescs[i]
 				billpage=billpages[i]
+				newdate=dates[i].replace('&nbsp;',' ')
+				month=monthdict.index(newdate[0:3].lower())
+				day=newdate[4:6]
+				result=results[i]
 				print billpage
+
+				if 'n/a' in billpage or 'Treaty' in billpage or 'PN' in billpage:
+					question2=''
+					amendment2=''
+					amendment3=''
+					amendment=''
+
+					if('Treaty') in billpage:
+						bill_finder=re.compile('>([A-Za-z\.\s]+)([0-9\-\(\)A-Z]+)<')
+						bill_url_finder=re.compile('<a href="(.*?)">.*?</a>')
+						proper_url_finder=re.compile('<meta name="canonical" content="(.*?)">')
+						billdetails=bill_finder.findall(billpage)[0]
+						billurl=bill_url_finder.findall(billpage)[0]
+						try:
+							bill_details=geturl(billurl)
+							billurl=proper_url_finder.findall(bill_details)[0]	
+						except:
+							billurl=''
+						bill_title=''
+
+					if('n/a') in billpage:
+						billdetails='na'
+						billurl=''
+						bill_title=''
+
+					if 'PN' in billpage:
+						bill_finder=re.compile('>([A-Za-z\.\s]+)([0-9\-]+)<')
+						bill_url_finder=re.compile('<a href="(.*?)">.*?</a>')
+						proper_url_finder=re.compile('<meta name="canonical" content="(.*?)">')
+						billdetails=bill_finder.findall(billpage)[0]
+						billurl=bill_url_finder.findall(billpage)[0]
+						try:
+							bill_details=geturl(billurl)
+							billurl=proper_url_finder.findall(bill_details)[0]
+						except:
+							billurl=''
+						bill_title=''			
 
 				if billpage!='n/a' and 'Treaty' not in billpage and 'PN' not in billpage:
 
@@ -270,14 +316,20 @@ def scrape_votes_senate(existing_file_senate):
 				# try:
 				# votecode=classify_question(question,question2,bill_title,amendment,votetype,bill_type,amendment2,amendment3)
 
-				row=[congress,session,year,vote,'','','votecode','','','',
+				bill2watch=''
+				billnum2=bill_type+' '+bill_numb
+				votedate=str(int(month))+'/'+str(int(day))+'/'+str(int(year))
+
+				row=[int(congress),session,year,vote,'','','votecode','','',
 					totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
-					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
-					question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
+					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,
+					billnum2,question,result,url,bill_title,votedate,month,day]	
 				# code_votes([row])
 				print url
 				print row
 				writer.writerow(row)
+
+				del vote,totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,billnum2,question,result,url,bill_title,votedate,month,day
 
 				# except:
 					# print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)

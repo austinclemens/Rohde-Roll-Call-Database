@@ -205,12 +205,19 @@ def scrape_votes_senate(existing_file_senate):
 				vote_totals=re.compile('<td width="50%" class="contenttext">(?:YEAs|Guilty)</td><td width="25%" class="contenttext" align="right">(.*?)</td>\n    </tr>\n    <tr>\n        <td></td><td width="50%" class="contenttext">(?:NAYs|Not Guilty)</td><td width="25%" class="contenttext" align="right">(.*?)</td>')
 				leg_block_finder=re.compile('Alphabetical by Senator Name(.*?)By Vote Position', re.DOTALL)
 				leg_finder=re.compile('>(.*?) \(([A-Z])-([A-Z]{2})\), <b>(Yea|Nay|Not Voting)</b>')
+				amdt_finder=re.compile('<TD valign="top" class="contenttext"><B>Amendment Number: </B></TD><TD valign="top" colspan="3" class="contenttext">(.*?)</TD>', re.DOTALL)
 				# question_finder=re.compile('<vote-question>(.*?)</vote-question>')
 				# amend_author=re.compile('<amendment-author>(.*?)</amendment-author>')
 				# vote_desc=re.compile('<vote-desc>(.*?)</vote-desc>')
 
 				leg_block=leg_block_finder.findall(rollcall)
 				legislators=leg_finder.findall(leg_block[0])
+
+				try:
+					amendment=amdt_finder.findall(rollcall)[0]
+					' '.join(amendment.split())
+				except:
+					amendment=''
 
 				dayes=0
 				dnays=0
@@ -323,13 +330,13 @@ def scrape_votes_senate(existing_file_senate):
 				row=[int(congress),session,year,vote,'','','votecode','','',
 					totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
 					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,
-					billnum2,question,result,url,bill_title,votedate,month,day]	
+					billnum2,question,amendment,result,url,bill_title,votedate,month,day]	
 				# code_votes([row])
 				print url
 				print row
 				writer.writerow(row)
 
-				del vote,totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,billnum2,question,result,url,bill_title,votedate,month,day
+				del amendment,vote,totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,billnum2,question,result,url,bill_title,votedate,month,day
 
 				# except:
 					# print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)

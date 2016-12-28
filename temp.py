@@ -1,9 +1,10 @@
 def funyuns():
+	blargh=[]
 	# Iterate through years from 1989 to present (Thomas only has votes >1989)
 	current_year=datetime.date.today().year
 	# for year in range(1989,current_year+1,1):
 	for year in range(1989,2018,1):
-		print year
+		# print year
 		# convert year to congress/session
 		congress=math.floor((year-1787)/2)
 		session=(year-1)%2+1
@@ -33,17 +34,45 @@ def funyuns():
 		results=fullvotes[1::5]
 
 		for i,vote in enumerate(votes):
-			print i,year,int(vote)
-			if [year,int(vote)] not in compare_votes:
-				print vote
-				vote_s="%05d" % (int(vote))
-				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+str(int(congress))+'&session='+str(int(session))+'&vote='+vote_s
-				# rollcall holds the senate rollcall vote page. ex: http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress=114&session=2&vote=00155
-				rollcall=geturl(url)
-				votedesc=votedescs[i]
-				billpage=billpages[i]
-				newdate=dates[i].replace('&nbsp;',' ')
-				month=monthdict.index(newdate[0:3].lower())
-				day=newdate[4:6]
-				result=results[i]
-				print billpage
+			# print i,year,int(vote)
+			vote_s="%05d" % (int(vote))
+			url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+str(int(congress))+'&session='+str(int(session))+'&vote='+vote_s
+			# rollcall holds the senate rollcall vote page. ex: http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress=114&session=2&vote=00155
+			rollcall=geturl(url)
+			votedesc=votedescs[i]
+			billpage=billpages[i]
+			newdate=dates[i].replace('&nbsp;',' ')
+			month=monthdict.index(newdate[0:3].lower())
+			day=newdate[4:6]
+			result=results[i]
+			# print billpage
+
+			if billpage!='n/a' and 'Treaty' not in billpage and 'PN' not in billpage:
+				amdt_finder=re.compile('<TD valign="top" class="contenttext"><B>Amendment Number: </B></TD><TD valign="top" colspan="3" class="contenttext">(.*?)</TD>', re.DOTALL)
+				
+				try:
+					amendment=amdt_finder.findall(rollcall)[0]
+					amendment=' '.join(amendment.split())
+					print year,vote,amendment
+				except:
+					pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

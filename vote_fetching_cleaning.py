@@ -21,7 +21,7 @@ request_headers = {"Accept-Language": "en-US,en;q=0.5","User-Agent": "Mozilla/5.
 monthdict=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
 
 def geturl(url):
-	print url
+	# print url
 	request = urllib2.Request(url, headers=request_headers)
 	return urllib2.urlopen(request).read()
 
@@ -215,7 +215,7 @@ def scrape_votes_senate(existing_file_senate):
 
 				try:
 					amendment=amdt_finder.findall(rollcall)[0]
-					' '.join(amendment.split())
+					amendment=' '.join(amendment.split())
 				except:
 					amendment=''
 

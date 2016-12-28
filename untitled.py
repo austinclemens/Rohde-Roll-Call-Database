@@ -15,15 +15,16 @@ def load_comparison():
 # 31: bill number
 # 32: full bill type/number
 # 33: question
-# 34: result
-# 35: url
-# 36: title
+# 34: amendment
+# 35: result
+# 36: url
+# 37: title
 
 # show a code and associated fields
 def show_code(code,data):
 	temp=[vote for vote in data if int(vote[6])==code]
 	for vote in temp:
-		print str(vote[6])+'|||'+str(vote[7])+'|||'+vote[2]+'|||'+vote[3]+'|||'+vote[32]+'|||'+vote[33]+'|||'+vote[36]
+		print str(vote[6])+'|||'+str(vote[7])+'|||'+vote[2]+'|||'+vote[3]+'|||'+vote[32]+'|||'+vote[33]+'>>>'+vote[34]+'<<<'+vote[37]
 		print
 
 def code_votes_senate(data,test=0):
@@ -31,7 +32,8 @@ def code_votes_senate(data,test=0):
 		question=strip(row[33])
 		bill_title=strip(row[36])
 		votetype=strip(row[30])
-		code=classify_question(question,bill_title,votetype,test=test)
+		amendment=strip(row[34])
+		code=classify_question(question,bill_title,votetype,amendment,test=test)
 		row[7]=code
 	return data
 
@@ -47,7 +49,7 @@ def show_discrep(code,data):
 	for vote in [row for row in data if str(row[6])!=str(code) and str(row[7])==str(code)]:
 		print str(vote[6])+'|||'+str(vote[7])+'|||'+vote[2]+'|||'+vote[3]+'|||'+vote[32]+'|||'+vote[33]+'|||'+vote[36]
 
-def classify_question(question,bill_title,votetype,test=0):
+def classify_question(question,bill_title,votetype,amendment,test=0):
 	"""Takes three strings associated with a vote and classifies the vote. If more than one classification
 	is found or not classification is found, will classify the vote as '?'."""
 	dict={}
@@ -74,27 +76,28 @@ def classify_question(question,bill_title,votetype,test=0):
 	# 17: Final Passage/Adoption of Concurrent Resolution 
 	if ('on concurrent resolution' in question or 'on resolution' in question or 'on passage of bill' in question) and (votetype=='hconres' or votetype=='sconres'):
 		dict['17']=1
-	# 21: Straight Amendments (includes en bloc & amendments in the nature of a substitute) 
-	if 'samdt' in question:
-		dict['21']=1
-	# # 22: Amendments to Amendments 
-	# if '' in question:
-	# 	dict['22']=1
-	# # 23: Substitute (to an amendment) 
-	# if '' in question:
-	# 	dict['23']=1
-	# # 24: Motion to Table Amendment 
-	# if '' in question:
-	# 	dict['24']=1
-	# # 25: Amendment to Amendment to Substitute 
-	# if '' in question:
-	# 	dict['25']=1
-	# # 26: Perfecting Amendment 
-	# if '' in question:
-	# 	dict['26']=1
-	# # 27: Amendment to Substitute 
-	# if '' in question:
-	# 	dict['27']=1
+	if amendment!='':
+		# 21: Straight Amendments (includes en bloc & amendments in the nature of a substitute) 
+		if amendment.count('samdt')==1:
+			dict['21']=1
+		# 22: Amendments to Amendments 
+		if amendment.count('samdt')>1:
+			dict['22']=1
+		# 23: Substitute (to an amendment) 
+		if '' in question:
+			dict['23']=1
+		# 24: Motion to Table Amendment 
+		if '' in question:
+			dict['24']=1
+		# 25: Amendment to Amendment to Substitute 
+		if 'on motion to table' in question:
+			dict['25']=1
+		# 26: Perfecting Amendment 
+		if '' in question:
+			dict['26']=1
+		# 27: Amendment to Substitute 
+		if '' in question:
+			dict['27']=1
 	# # 30: Passage over Presidential Veto 
 	# if '' in question:
 	# 	dict['30']=1

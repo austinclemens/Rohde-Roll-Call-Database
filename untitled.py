@@ -24,20 +24,21 @@ def load_comparison():
 def show_code(code,data):
 	temp=[vote for vote in data if int(vote[6])==code]
 	for vote in temp:
-		print str(vote[6])+'|||'+str(vote[7])+'|||'+vote[2]+'|||'+vote[3]+'|||'+vote[32]+'|||'+vote[33]+'>>>'+vote[34]+'<<<'+vote[37]
+		print vote[0]+','+vote[1]+','+vote[3]+','+str(vote[6])+'|||'+str(vote[7])+'|||'+vote[2]+'|||'+vote[3]+'|||'+vote[32]+'|||'+vote[33]+'>>>'+vote[34]+'<<<'+vote[37]
 		print
 
 def code_votes_senate(data,test=0):
 	for row in data:
 		question=strip(row[33])
 		bill_title=strip(row[36])
-		votetype=strip(row[30])
+		votetype=strip(row[30]).lower()
 		amendment=strip(row[34])
 		code=classify_question(question,bill_title,votetype,amendment,test=test)
 		row[7]=code
 	return data
 
 def show_discrep(code,data):
+	print 'Total of oldcode: ',len([row for row in data if str(row[6])==str(code)])
 	print 'Newcode not assigned: ',len([row for row in data if str(row[6])==str(code) and str(row[7])!=str(code)])
 	print 'Newcode assigned erroneously: ',len([row for row in data if str(row[6])!=str(code) and str(row[7])==str(code)])
 	print
@@ -49,7 +50,25 @@ def show_discrep(code,data):
 	for vote in [row for row in data if str(row[6])!=str(code) and str(row[7])==str(code)]:
 		print str(vote[6])+'|||'+str(vote[7])+'|||'+vote[2]+'|||'+vote[3]+'|||'+vote[32]+'|||'+vote[33]+'|||'+vote[36]
 
-def classify_question(question,bill_title,votetype,amendment,test=0):
+
+def discrep_table(data):
+	temp=list(set([int(row[7]) for row in data]))
+	temp2=list(set([int(row[6]) for row in data]))
+	temp=list(set(temp+temp2))
+	temp.sort()
+	print 'NEW VOTES'
+	print ' ',
+	for code in temp:
+		print code,
+	print
+	for code in temp:
+		print code,
+		for code2 in temp:
+			print len([row for row in data if int(row[6])==code2 and int(row[7])==code]),
+		print
+
+
+def classify_question(question,bill_title,votetype,amendment,amendment_to_amendment_number,amendment_to_amendment_to_amendment_number,test=0):
 	"""Takes three strings associated with a vote and classifies the vote. If more than one classification
 	is found or not classification is found, will classify the vote as '?'."""
 	dict={}
@@ -76,147 +95,141 @@ def classify_question(question,bill_title,votetype,amendment,test=0):
 	# 17: Final Passage/Adoption of Concurrent Resolution 
 	if ('on concurrent resolution' in question or 'on resolution' in question or 'on passage of bill' in question) and (votetype=='hconres' or votetype=='sconres'):
 		dict['17']=1
-	if amendment!='':
-		# 21: Straight Amendments (includes en bloc & amendments in the nature of a substitute) 
-		if amendment.count('samdt')==1:
-			dict['21']=1
-		# 22: Amendments to Amendments 
-		if amendment.count('samdt')>1:
-			dict['22']=1
+	if amendment!='' and 'on decision of chair' not in question and 'germane' not in question and 'motion to concur' not in question and 'motion to strike' not in question and 'strike condition' not in question and 'reconsider' not in question and 'suspend rule' not in question and 'suspend paragraph' not in question and 'point of order' not in question and 'motion to waive' not in question:
+		dict['21']=1
 		# 23: Substitute (to an amendment) 
-		if '' in question:
+		if 'substitute' in question:
 			dict['23']=1
 		# 24: Motion to Table Amendment 
-		if '' in question:
-			dict['24']=1
-		# 25: Amendment to Amendment to Substitute 
 		if 'on motion to table' in question:
+			dict['24']=1
+		25: Amendment to Amendment to Substitute 
+		if '' in question:
 			dict['25']=1
-		# 26: Perfecting Amendment 
-		if '' in question:
+		26: Perfecting Amendment 
+		if 'perfecting nature' in question:
 			dict['26']=1
-		# 27: Amendment to Substitute 
-		if '' in question:
-			dict['27']=1
-	# # 30: Passage over Presidential Veto 
-	# if '' in question:
-	# 	dict['30']=1
-	# # 34: Treaty Ratification 
-	# if '' in question:
-	# 	dict['34']=1
-	# # 48: 
-	# if '' in question:
-	# 	dict['48']=1
-	# # 52: Judgment of the Senate 
-	# if '' in question:
+		if len(dict)==0:
+			# 21: Straight Amendments (includes en bloc & amendments in the nature of a substitute) 
+			if amendment.count('samdt')==1:
+				dict['21']=1
+			# 22: Amendments to Amendments 
+			if amendment.count('samdt')>1:
+				dict['22']=1
+			# 27: Amendment to Substitute 
+			if '' in question:
+				dict['27']=1
+	# 30: Passage over Presidential Veto 
+	if 'on overriding veto' in question:
+		dict['30']=1
+	# 34: Treaty Ratification 
+	if 'resolution of ratification' in question:
+		dict['34']=1
+	# 52: Judgment of the Senate 
+	# if 'on decision of chair' in question and 'appeal' not in question:
 	# 	dict['52']=1
-	# # 54: Motion to Suspend Senate Rules
-	# if '' in question:
-	# 	dict['54']=1
-	# # 56: Motion to Discharge 
-	# if '' in question:
-	# 	dict['56']=1
-	# # 57: Point of Order 
-	# if '' in question:
-	# 	dict['57']=1
-	# # 58: Motion to Go into Executive Committee 
-	# if '' in question:
-	# 	dict['58']=1
+	# 54: Motion to Suspend Senate Rules
+	if ('motion to suspend rule' in question or 'motion to waive rule' in question or 'motion to suspend paragraph' in question) and votetype!='na':
+		dict['54']=1
+	# 56: Motion to Discharge 
+	if 'motion to discharge' in question:
+		dict['56']=1
+	# 57: Point of Order 
+	if 'on point of order' in question:
+		dict['57']=1
+	# 58: Motion to Go into Executive Committee 
+	if 'motion to proceed to executive session' in question:
+		dict['58']=1
 	# # 60: Motion to Waive Gramm-Rudman Requirements
 	# if '' in question:
 	# 	dict['60']=1
-	# # 61: Budget Waivers
-	# if '' in question:
-	# 	dict['61']=1
-	# # 63: Motion to Reconsider 
-	# if '' in question:
-	# 	dict['63']=1
+	# 61: Budget Waivers
+	if 'motion to table' not in question and 'motion to waive' in question or 'waive cba' in question or 'waive cbr' in question or 'wave cba' in question or ('waive' in question and 'budget' in question) or ('waive' in question and 'internal revenue' in question):
+		dict['61']=1
+	# 62: Invoke cloture
+	if 'cloture motion' in question or question[0:10]=='on cloture':
+		dict['62']=1
+	# 63: Motion to Reconsider 
+	if 'motion to reconsider' in question and ('motion to table' not in question or ('motion to table' in question and question.index('motion to table')>question.index('motion to reconsider'))):
+		dict['63']=1
 	# # 64: Motion to Waive 
 	# if '' in question:
 	# 	dict['64']=1
-	# # 65: Confirmation 
-	# if '' in question:
-	# 	dict['65']=1
-	# # 66: Motion to Proceed 
-	# if '' in question:
-	# 	dict['66']=1
-	# # 67: Appeal of the Chair’s Ruling
-	# if '' in question:
-	# 	dict['67']=1
-	# # 69: miscellaneous
-	# if '' in question:
-	# 	dict['69']=1
-	# # 72: Motion to Recommit to Conference 
-	# if '' in question:
-	# 	dict['72']=1
-	# # 74: Motion to Postpone 
-	# if '' in question:
-	# 	dict['74']=1
-	# # 79: Motion to Disagree 
-	# if '' in question:
-	# 	dict['79']=1
-	# # 82: Motion to Recede
-	# if '' in question:
-	# 	dict['82']=1
-	# # 83: Motion to Commit
-	# if '' in question:
-	# 	dict['83']=1
-	# # 84: Motion to Consider
-	# if '' in question:
-	# 	dict['84']=1
-	# # 87: Motion to Refer 
-	# if '' in question:
-	# 	dict['87']=1
-	# # 90: Motion to Strike
-	# if '' in question:
-	# 	dict['90']=1
-	# # 92: Motion to Adjourn 
-	# if '' in question:
-	# 	dict['92']=1
-	# # 93: Motion to Recommit (Note: Recommit to Conference is 72)
-	# if '' in question:
-	# 	dict['93']=1
-	# # 95: Motion to Instruct Conferees 
-	# if '' in question:
-	# 	dict['95']=1
-	# # 96: Motion to Table
-	# if '' in question:
-	# 	dict['96']=1
-	# # 97: Motion to Recede and Concur (also includes motion to concur)
-	# if '' in question:
-	# 	dict['97']=1
+	# 65: Confirmation 
+	if question[0:13]=='on nomination':
+		dict['65']=1
+	# 66: Motion to Proceed 
+	if 'motion to proceed' in question[0:30] and 'executive session' not in question and 'conference report' not in question and 'conf rpt' not in question:
+		dict['66']=1
+	# 67: Appeal of the chair's ruling
+	if 'on decision of chair' in question:
+		dict['67']=1
+	# 72: Motion to Recommit to Conference 
+	if 'motion to recommit' in question[0:30] and 'to conference' in question:
+		dict['72']=1
+	# 74: Motion to Postpone 
+	if 'motion to postpone' in question[0:40]:
+		dict['74']=1
+	# 79: Motion to Disagree 
+	if 'motion to disagree' in question[0:40]:
+		dict['79']=1
+	# 82: Motion to Recede
+	if 'motion to recede' in question[0:40]:
+		dict['82']=1
+	# 83: Motion to Commit
+	if 'motion to commit' in question[0:50] and 'motion to table' not in question:
+		dict['83']=1
+	# 87: Motion to Refer 
+	if 'motion to refer' in question[0:40]:
+		dict['87']=1
+	# 90: Motion to Strike
+	if 'motion to strike' in question or 'to strike condition' in question:
+		dict['90']=1
+	# 92: Motion to Adjourn 
+	if 'motion to adjourn' in question[0:30]:
+		dict['92']=1
+	# 93: Motion to Recommit (Note: Recommit to Conference is 72)
+	if 'motion to recommit' in question[0:50] and 'to conference' not in question and 'motion to table' not in question:
+		dict['93']=1
+	# 95: Motion to Instruct Conferees 
+	if 'motion to instruct conferees' in question and 'motion to table' not in question:
+		dict['95']=1
+	# 96: Motion to Table
+	###### ALERT REVISIT #########
+	if 'motion to table' in question and amendment=='':
+		dict['96']=1
+	# 97: Motion to Recede and Concur (also includes motion to concur)
+	if 'motion to concur' in question[0:150] and 'motion to waive' not in question or ('motion to concur' in question and 'motion to table' in question and question.find('motion to concur')<question.find('motion to table')):
+		dict['97']=1
 	# # 111: Adjourn to a day certain
-	# if '' in question:
+	# if 'motion to adjourn' in question:
 	# 	dict['111']=1
-	# # 112: Recess
-	# if '' in question:
-	# 	dict['112']=1
-	# # 113: Executive Session
-	# if '' in question:
-	# 	dict['113']=1
-	# # 124: Compel Attendance by Absentees
-	# if '' in question:
-	# 	dict['124']=1
-	# # 128: Proceed to Consideration of Conference Report
-	# if '' in question:
-	# 	dict['128']=1
-	# # 134: Engrossment and Third Reading
-	# if '' in question:
-	# 	dict['134']=1
-	# # 138: Determine Germaneness
-	# if '' in question:
-	# 	dict['138']=1
+	# 112: Recess
+	if 'motion to recess' in question[0:40]:
+		dict['112']=1
+	# 124: Compel Attendance by Absentees
+	if 'motion to instruct sgt' in question or 'motion to instruct sergeant' in question or 'motion for attendance' in question:
+		dict['124']=1
+	# 128: Proceed to Consideration of Conference Report
+	if 'motion to proceed' in question and ('conference report' in question or 'conf rpt' in question):
+		dict['128']=1
+	# 134: Engrossment and Third Reading
+	if 'third time?' in question or 'third reading?' in question:
+		dict['134']=1
+	# 138: Determine Germaneness
+	if 'germane' in question or 'germaine' in question:
+		dict['138']=1
 	# # 191: Rules of Evidence Impeachment
 	# if '' in question:
 	# 	dict['191']=1
 	# # 192: Rules of Trial Impeachment
 	# if '' in question:
 	# 	dict['192']=1
-	# # 193: Guilt or Innocence Impeachment
-	# if '' in question:
-	# 	dict['193']=1
+	# 193: Guilt or Innocence Impeachment
+	if 'articles of impeachment' in question or 'resolution impeaching' in question:
+		dict['193']=1
 	if len(dict.keys())>1:
-		final='?'
+		final='999'
 	if len(dict.keys())==1:
 		final=dict.keys()[0]
 	if len(dict.keys())==0:

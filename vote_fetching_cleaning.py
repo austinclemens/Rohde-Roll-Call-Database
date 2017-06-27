@@ -49,6 +49,14 @@ def fix_dayes(doc,doc2):
 		for row in data:
 			writer.writerow(row)
 
+# useful: https://stackoverflow.com/questions/2941681/how-to-make-int-parse-blank-strings
+def mk_int(s):
+	if s is not None:
+		s=s.strip()
+		return int(s) if s else 0
+	else:
+		return 0
+
 
 def scrape_votes_senate(existing_file_senate):
 	"""Same as scrape_votes but for Senate. Take existing file, add all new votes, run new votes
@@ -57,16 +65,16 @@ def scrape_votes_senate(existing_file_senate):
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
 
-	csvfile=open(existing_file_senate,'a')
+	# csvfile=open(existing_file_senate,'a')
+	csvfile=open('/Users/austinc/Desktop/new.csv','w')
 	writer=csv.writer(csvfile)
 
-	compare_votes=[[int(row[2]),int(row[3])]for row in data[1:]]
+	compare_votes=[[mk_int(row[2]),mk_int(row[3])]for row in data[1:]]
 	new_votes=[]
 
 	# Iterate through years from 1989 to present (Thomas only has votes >1989)
 	current_year=datetime.date.today().year
-	# for year in range(1989,current_year+1,1):
-	for year in range(1989,2018,1):
+	for year in range(1989,current_year+1,1):
 		print year
 		# convert year to congress/session
 		congress=math.floor((year-1787)/2)
@@ -98,7 +106,10 @@ def scrape_votes_senate(existing_file_senate):
 
 		for i,vote in enumerate(votes):
 			print i,year,int(vote)
-			if [year,int(vote)] not in compare_votes:
+			vote_s="%05d" % (int(vote))
+			if [int(year),int(vote)] not in compare_votes:
+				amendment_to_amendment=''
+				amendment_to_amendment_to_amendment=''
 				print vote
 				vote_s="%05d" % (int(vote))
 				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+str(int(congress))+'&session='+str(int(session))+'&vote='+vote_s
@@ -110,7 +121,7 @@ def scrape_votes_senate(existing_file_senate):
 				votedesc=votedescs[i]
 				billpage=billpages[i]
 				newdate=dates[i].replace('&nbsp;',' ')
-				month=monthdict.index(newdate[0:3].lower())
+				month=monthdict.index(newdate[0:3].lower())+1
 				day=newdate[4:6]
 				result=results[i]
 				print billpage
@@ -215,9 +226,9 @@ def scrape_votes_senate(existing_file_senate):
 					if leg[1]=='R' and leg[3]=='Nay':
 						rnays=rnays+1
 
-				ayes=int(root.find('count').find('yeas'))
-				nays=int(root.find('count').find('nays'))
-				totalvotes=ayes+nays+int(root.find('count').find('present'))
+				ayes=mk_int(root.find('count').find('yeas').text)
+				nays=mk_int(root.find('count').find('nays').text)
+				totalvotes=ayes+nays+mk_int(root.find('count').find('present').text)
 				
 				bill_type=billdetails[0].replace('.','').replace(' ','')
 				bill_numb=billdetails[1]
@@ -299,16 +310,18 @@ def scrape_votes_senate(existing_file_senate):
 					pass
 
 				# try:
-				votecode=classify_question_senate(question,bill_title,votetype,amendment,amendment_to_amendment_number,amendment_to_amendment_to_amendment_number):
+				votecode=classify_question_senate(question,bill_title,votetype,amendment,amendment_to_amendment,amendment_to_amendment_to_amendment)
 				bill2watch=''
 				billnum2=bill_type+' '+bill_numb
 				votedate=str(int(month))+'/'+str(int(day))+'/'+str(int(year))
 
+				question=question.decode('ascii','ignore')
+				amendment=''.join([i if ord(i) < 128 else ' ' for i in amendment])
 				row=[int(congress),session,year,vote,'','',votecode,'','',
 					totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
 					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,
-					billnum2,question,amendment,amendment_to_amendment_number,amendment_to_amendment_to_amendment_number,result,url,bill_title,votedate,month,day]	
-				code_votes_senate([row])
+					billnum2,question,amendment,amendment_to_amendment,amendment_to_amendment_to_amendment,result,url,bill_title,votedate,month,day]	
+				# code_votes_senate([row])
 				print url
 				print row
 				writer.writerow(row)
@@ -317,6 +330,35 @@ def scrape_votes_senate(existing_file_senate):
 
 				# except:
 					# print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
+			# else:
+			# 	amendment_to_amendment=''
+			# 	amendment_to_amendment_to_amendment=''
+			# 	# try:
+			# 	oldrow=[row for row in data[1:] if int(row[0])==int(congress) and int(row[1])==int(session) and int(row[3])==int(vote_s)][0]
+			# 	urlxml='https://www.senate.gov/legislative/LIS/roll_call_votes/vote'+str(int(congress))+str(int(session))+'/vote_'+str(int(congress))+'_'+str(int(session))+'_'+vote_s+'.xml'
+			# 	rollcall_xml=geturl(urlxml)
+			# 	root=ET.fromstring(rollcall_xml)
+			# 	# except:
+			# 	# 	pass
+
+			# 	try:
+			# 		amendment_to_amendment=root.find('amendment').find('amendment_to_amendment_number').text
+			# 	except:
+			# 		pass
+			# 	try:
+			# 		amendment_to_amendment_to_amendment=root.find('amendment').find('amendment_to_amendment_to_amendment_number').text
+			# 	except:
+			# 		pass
+
+			# 	oldrow[34]=amendment_to_amendment
+			# 	oldrow[35]=amendment_to_amendment_to_amendment
+
+			# 	writer.writerow(oldrow)
+
+
+# http://drumcoder.co.uk/blog/2012/jul/13/removing-non-ascii-chars-string-python/
+def rna(s): 
+	return "".join(i for i in s if ord(i)<128)
 
 
 def scrape_votes(existing_file):
@@ -738,14 +780,14 @@ def code_votes(data,test=0,vtype=-1):
 
 def code_votes_senate(data,test=0):
 	for row in data:
-		question=strip(row[33])
+		question=strip(row[32])
 		bill_title=strip(row[38])
-		votetype=strip(row[30]).lower()
-		amendment=strip(row[34])
-		amendment_to_amendment_number=strip(row[35])
-		amendemnt_to_amendment_to_amendment_number=strip(row[36])
+		votetype=strip(row[29]).lower()
+		amendment=strip(row[33])
+		amendment_to_amendment_number=row[34]
+		amendment_to_amendment_to_amendment_number=row[35]
 		code=classify_question_senate(question,bill_title,votetype,amendment,amendment_to_amendment_number,amendment_to_amendment_to_amendment_number,test=test)
-		row[7]=code
+		row[6]=code
 	return data
 
 
@@ -982,7 +1024,7 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 	return final
 
 
-def classify_question_senate(question,bill_title,votetype,amendment,test=0):
+def classify_question_senate(question,bill_title,votetype,amendment,amendment2,amendment3,test=0):
 	"""Takes three strings associated with a vote and classifies the vote. If more than one classification
 	is found or not classification is found, will classify the vote as '?'."""
 	dict={}
@@ -990,6 +1032,11 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 		print question
 		print bill_title
 		print votetype
+
+	# No Statement of Purpose on File. - sometimes given to bills that aren't amendments
+	if 'no statement of purpose' in amendment:
+		amendment=''
+
 	# if 'table' not in question and 'previous question' not in question and 'substitute' not in question:
 	# 1: constitutional amendments
 	if 'amendment to constitution' in question or 'amendment to the constitution' in question and 'sense of senate' not in question:
@@ -1010,38 +1057,24 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 	if ('on concurrent resolution' in question or 'on resolution' in question or 'on passage of bill' in question) and (votetype=='hconres' or votetype=='sconres'):
 		dict['17']=1
 	if amendment!='' and 'on decision of chair' not in question and 'germane' not in question and 'motion to concur' not in question and 'motion to strike' not in question and 'strike condition' not in question and 'reconsider' not in question and 'suspend rule' not in question and 'suspend paragraph' not in question and 'point of order' not in question and 'motion to waive' not in question:
-		dict['21']=1
-		# # 23: Substitute (to an amendment) 
-		# if 'substitute' in question:
-		# 	dict['23']=1
-		# # 24: Motion to Table Amendment 
-		# if 'on motion to table' in question:
-		# 	dict['24']=1
-		# 25: Amendment to Amendment to Substitute 
-		# if '' in question:
-		# 	dict['25']=1
+		# 24: Motion to Table Amendment 
+		if 'motion to table' in question:
+			dict['24']=1
 		# 26: Perfecting Amendment 
-		# if 'perfecting nature' in question:
-		# 	dict['26']=1
-		# if len(dict)==0:
-		# 	# 21: Straight Amendments (includes en bloc & amendments in the nature of a substitute) 
-		# 	if amendment.count('samdt')==1:
-		# 		dict['21']=1
-		# 	# 22: Amendments to Amendments 
-		# 	if amendment.count('samdt')>1:
-		# 		dict['22']=1
-		# 	# 27: Amendment to Substitute 
-		# 	if '' in question:
-		# 		dict['27']=1
+		elif 'perfecting nature' in question:
+			dict['26']=1
+		# 22: Amendments to Amendments 
+		elif amendment2!='':
+			dict['22']=1
+		# 21: Straight Amendments (includes en bloc & amendments in the nature of a substitute) 
+		if len(dict)==0:
+			dict['21']=1
 	# 30: Passage over Presidential Veto 
 	if 'on overriding veto' in question:
 		dict['30']=1
 	# 34: Treaty Ratification 
 	if 'resolution of ratification' in question:
 		dict['34']=1
-	# 52: Judgment of the Senate 
-	# if 'on decision of chair' in question and 'appeal' not in question:
-	# 	dict['52']=1
 	# 54: Motion to Suspend Senate Rules
 	if ('motion to suspend rule' in question or 'motion to waive rule' in question or 'motion to suspend paragraph' in question) and votetype!='na':
 		dict['54']=1
@@ -1054,9 +1087,6 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 	# 58: Motion to Go into Executive Committee 
 	if 'motion to proceed to executive session' in question:
 		dict['58']=1
-	# # 60: Motion to Waive Gramm-Rudman Requirements
-	# if '' in question:
-	# 	dict['60']=1
 	# 61: Budget Waivers
 	if 'motion to table' not in question and 'motion to waive' in question or 'waive cba' in question or 'waive cbr' in question or 'wave cba' in question or ('waive' in question and 'budget' in question) or ('waive' in question and 'internal revenue' in question):
 		dict['61']=1
@@ -1066,9 +1096,6 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 	# 63: Motion to Reconsider 
 	if 'motion to reconsider' in question and ('motion to table' not in question or ('motion to table' in question and question.index('motion to table')>question.index('motion to reconsider'))):
 		dict['63']=1
-	# # 64: Motion to Waive 
-	# if '' in question:
-	# 	dict['64']=1
 	# 65: Confirmation 
 	if question[0:13]=='on nomination':
 		dict['65']=1
@@ -1109,15 +1136,11 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 	if 'motion to instruct conferees' in question and 'motion to table' not in question:
 		dict['95']=1
 	# 96: Motion to Table
-	###### ALERT REVISIT #########
 	if 'motion to table' in question and amendment=='':
 		dict['96']=1
 	# 97: Motion to Recede and Concur (also includes motion to concur)
 	if 'motion to concur' in question[0:150] and 'motion to waive' not in question or ('motion to concur' in question and 'motion to table' in question and question.find('motion to concur')<question.find('motion to table')):
 		dict['97']=1
-	# # 111: Adjourn to a day certain
-	# if 'motion to adjourn' in question:
-	# 	dict['111']=1
 	# 112: Recess
 	if 'motion to recess' in question[0:40]:
 		dict['112']=1
@@ -1133,12 +1156,6 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 	# 138: Determine Germaneness
 	if 'germane' in question or 'germaine' in question:
 		dict['138']=1
-	# # 191: Rules of Evidence Impeachment
-	# if '' in question:
-	# 	dict['191']=1
-	# # 192: Rules of Trial Impeachment
-	# if '' in question:
-	# 	dict['192']=1
 	# 193: Guilt or Innocence Impeachment
 	if 'articles of impeachment' in question or 'resolution impeaching' in question:
 		dict['193']=1
@@ -1156,14 +1173,26 @@ def classify_question_senate(question,bill_title,votetype,amendment,test=0):
 
 
 scrape_votes(server_file_location)
-scrape_votes(server_file_location_senate)
+scrape_votes_senate(server_file_location_senate)
 
 with open(server_file_location,'rU') as csvfile:
 	reader=csv.reader(csvfile)
 	data=[row for row in reader]
 
 data=fix_contvotes(data)
+
 with open(server_file_location,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)
+
+with open(server_file_location_senate,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
+
+data=fix_contvotes(data)
+
+with open(server_file_location_senate,'wb') as csvfile:
 	writer=csv.writer(csvfile)
 	for row in data:
 		writer.writerow(row)
@@ -1190,7 +1219,27 @@ with open(server_file_location,'wb') as csvfile:
 	for row in data:
 		writer.writerow(row)
 
+# remove all newline characters within text fields
+with open(server_file_location_senate,'rU') as csvfile:
+	reader=csv.reader(csvfile)
+	data=[row for row in reader]
 
+for i,row in enumerate(data):
+	for j,column in enumerate(row):
+		a=column.replace('\n','')
+		data[i][j]=a.replace('\r','')
+
+# sort according to congress and then vote number
+temp=data[0]
+data=data[1:]
+data.sort(key=lambda x: int(x[4]))
+data.sort(key=lambda x: int(x[2]))
+data.insert(0,temp)
+
+with open(server_file_location_senate,'wb') as csvfile:
+	writer=csv.writer(csvfile)
+	for row in data:
+		writer.writerow(row)
 
 
 

@@ -1,5 +1,5 @@
 def load_comparison():
-	fileloc='/Users/austinc/Desktop/senate.csv'
+	fileloc='/Users/austinc/Desktop/new.csv'
 	with open(fileloc,'r') as cfile:
 		reader=csv.reader(cfile)
 		data=[row for row in reader]
@@ -119,6 +119,26 @@ def classify_question(question,bill_title,votetype,amendment,amendment_to_amendm
 			# 27: Amendment to Substitute 
 			if '' in question:
 				dict['27']=1
+
+
+		# NOTES ON AMENDMENTS
+		# 21: sometimes has 'in the nature of a substitute' in 'amendment_purpose'
+		# 22: sometimes has 'to provide a second degree amendment...' in 'amendment_purpose'
+			# no amendment to amendment number?
+			# most of the time the amendment to amendment seems to be there...
+		# 23: 1 for 'in the nature of a substitute'. And on one occasion 'of a perfecting nature' :/
+			# this feels totally sketchy. There aren't many, they aren't used recently. I feel like this
+			# was a new category someone started and then abandoned
+		# 24: this one is easy - amendment and motion to table
+		# 25: these have the amendment_to_amendment_to_amendment structure but it may be impossible to
+			# figure out if they are amendments to amendments to substitutes because the substitute may
+			# not have had a vote and the page itself isn't helpful - only the transcript of the introduction
+			# ie 'introducing in the nature of a substitute' this code is uncommon so...
+		# 26: if the question has 'perfecting nature' in it I think that's 26. Unfortunately sometimes
+			# the old codes don't follow this rule. I think they're wrong.
+		# 27: same problem as 25. They have the amendment to amendment structure but no guarantee
+			# of any mention of substitute
+
 	# 30: Passage over Presidential Veto 
 	if 'on overriding veto' in question:
 		dict['30']=1

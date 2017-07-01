@@ -65,8 +65,7 @@ def scrape_votes_senate(existing_file_senate):
 		reader=csv.reader(csvfile)
 		data=[row for row in reader]
 
-	# csvfile=open(existing_file_senate,'a')
-	csvfile=open('/Users/austinc/Desktop/new.csv','w')
+	csvfile=open(existing_file_senate,'a')
 	writer=csv.writer(csvfile)
 
 	compare_votes=[[mk_int(row[2]),mk_int(row[3])]for row in data[1:]]
@@ -105,7 +104,7 @@ def scrape_votes_senate(existing_file_senate):
 		results=fullvotes[1::5]
 
 		for i,vote in enumerate(votes):
-			print i,year,int(vote)
+			# print i,year,int(vote)
 			vote_s="%05d" % (int(vote))
 			if [int(year),int(vote)] not in compare_votes:
 				amendment_to_amendment=''
@@ -414,7 +413,7 @@ def scrape_votes(existing_file):
 			# http://thomas.loc.gov/cgi-bin/bdquery/z?d107:HE00428:@@@X
 
 			for vote in votes:
-				if [year,int(vote)] not in compare_votes:
+				if [int(year),int(vote)] not in compare_votes:
 					print vote
 					vote_s="%03d" % (int(vote))
 					url='http://clerk.house.gov/evs/%s/roll%s.xml' % (year,vote_s)
@@ -739,13 +738,13 @@ def fix_contvotes(data):
 	years=list(set([row[2] for row in data[1:]]))
 	yeardict={}
 	for year in years:
-		votenums=[int(row[3]) for row in data if row[2]==year]
+		votenums=[mk_int(row[3]) for row in data if row[2]==year]
 		yeardict[year]=max(votenums)
 
 	for row in data[1:]:
 		if int(row[2])%2==0:
 			try:
-				row[4]=str(int(row[3])+int(yeardict[str(int(row[2])-1)]))
+				row[4]=str(mk_int(row[3])+int(yeardict[str(int(row[2])-1)]))
 			except:
 				pass
 		else:
@@ -1232,7 +1231,7 @@ for i,row in enumerate(data):
 # sort according to congress and then vote number
 temp=data[0]
 data=data[1:]
-data.sort(key=lambda x: int(x[4]))
+data.sort(key=lambda x: mk_int(x[4]))
 data.sort(key=lambda x: int(x[2]))
 data.insert(0,temp)
 

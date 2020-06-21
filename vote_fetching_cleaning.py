@@ -12,8 +12,13 @@ import os
 from string import strip
 import xml.etree.ElementTree as ET
 
+request_headers = {"Accept-Language": "en-US,en;q=0.5","User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0","Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Referer": "http://pipcvotes.cacexplore.org","Connection": "keep-alive" }
+
 server_file_location=os.path.dirname(os.path.realpath(__file__))+'/house_votes.csv'
 server_file_location_senate=os.path.dirname(os.path.realpath(__file__))+'/senate_votes.csv'
+
+diagnostic_file_location=os.path.dirname(os.path.realpath(__file__))+'/house_uncoded.csv'
+diagnostic_file_location_senate=os.path.dirname(os.path.realpath(__file__))+'/senate_uncoded.csv'
 
 # server_file_location='/Users/austinc/Desktop/votes.csv'
 # print os.path.dirname(os.path.realpath(__file__))
@@ -88,7 +93,7 @@ def scrape_votes_senate(existing_file_senate):
 		# get all votes for the year
 		# compare against existing file to see if the vote is already in the database
 		# vote_finder gets all vote numbers for the year
-		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress='+str(int(congress))+'&session='+str(int(session))+'&vote=(.*?)">')
+		vote_finder=re.compile('href="/legislative/LIS/roll_call_lists/roll_call_vote_cfm\.cfm\?congress='+str(int(congress))+'(?:&|&amp;)session='+str(int(session))+'(?:&|&amp;)vote=(.*?)">')
 		# fullvote_finder pulls the data in each row - date/tally/result/question/issue
 		fullvote_finder=re.compile('<td valign="top" class="contenttext">(.*?)</td>',re.DOTALL)
 
@@ -109,7 +114,7 @@ def scrape_votes_senate(existing_file_senate):
 			if [int(year),int(vote)] not in compare_votes:
 				amendment_to_amendment=''
 				amendment_to_amendment_to_amendment=''
-				print vote
+				print "VOTE:",vote
 				vote_s="%05d" % (int(vote))
 				url='http://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress='+str(int(congress))+'&session='+str(int(session))+'&vote='+vote_s
 				urlxml='https://www.senate.gov/legislative/LIS/roll_call_votes/vote'+str(int(congress))+str(int(session))+'/vote_'+str(int(congress))+'_'+str(int(session))+'_'+vote_s+'.xml'
@@ -160,7 +165,7 @@ def scrape_votes_senate(existing_file_senate):
 							billurl=proper_url_finder.findall(bill_details)[0]
 						except:
 							billurl=''
-						bill_title=''			
+						bill_title=''	
 
 				if billpage!='n/a' and 'Treaty' not in billpage and 'PN' not in billpage:
 
@@ -170,8 +175,7 @@ def scrape_votes_senate(existing_file_senate):
 					billdetails=bill_finder.findall(billpage)[0]
 					billurl=bill_url_finder.findall(billpage)[0]
 
-					# get data from the bill page
-					# Go to all actions page for the legislation, find the action that includes the roll call, save the full text into question2
+					# GO TO GPO XML AND GET QUESTION AND OTHER DETAILS
 					question2=''
 					amendment2=''
 					amendment3=''
@@ -200,7 +204,10 @@ def scrape_votes_senate(existing_file_senate):
 				for member in leg_block:
 					legislators.append([member.find('last_name').text,member.find('party').text,member.find('state').text,member.find('vote_cast').text])
 
-				amendment=root.find('amendment').find('amendment_purpose').text
+				try:
+					amendment=root.find('amendment').find('amendment_purpose').text
+				except:
+					amendment=''
 				try:
 					amendment_to_amendment=root.find('amendment').find('amendment_to_amendment_number').text
 				except:
@@ -210,10 +217,29 @@ def scrape_votes_senate(existing_file_senate):
 				except:
 					pass
 
+				vpyn=''
+				vpvote=0
+				# did VP vote?
+				vp=root.find('tie_breaker').find('tie_breaker_vote').text
+				if vp=="Nay":
+					vpvote=1
+					vpyn=0
+				if vp=="Yea":
+					vpvote=1
+					vpyn=1
+
 				dayes=0
 				dnays=0
 				rayes=0
 				rnays=0
+				dnv=0
+				rnv=0
+				dpresent=0
+				rpresent=0
+				iayes=0
+				inays=0
+				inv=0
+				ipresent=0
 
 				for leg in legislators:
 					if leg[1]=='D' and leg[3]=='Yea':
@@ -224,13 +250,47 @@ def scrape_votes_senate(existing_file_senate):
 						rayes=rayes+1
 					if leg[1]=='R' and leg[3]=='Nay':
 						rnays=rnays+1
+					if leg[1]=='D' and leg[3]=='Present':
+						dpresent=dpresent+1
+					if leg[1]=='D' and leg[3]=='Not Voting':
+						dnv=dnv+1
+					if leg[1]=='R' and leg[3]=='Present':
+						rpresent=rpresent+1
+					if leg[1]=='R' and leg[3]=='Not Voting':
+						rnv=rnv+1
+					if leg[1]!='R' and leg[1]!='D' and leg[3]=='Yea':
+						iayes=iayes+1
+					if leg[1]!='R' and leg[1]!='D' and leg[3]=='Nay':
+						inays=inays+1
+					if leg[1]!='R' and leg[1]!='D' and leg[3]=='Present':
+						ipresent=ipresent+1
+					if leg[1]!='R' and leg[1]!='D' and leg[3]=='Not Voting':
+						inv=inv+1
 
 				ayes=mk_int(root.find('count').find('yeas').text)
 				nays=mk_int(root.find('count').find('nays').text)
-				totalvotes=ayes+nays+mk_int(root.find('count').find('present').text)
-				
+				presents=mk_int(root.find('count').find('present').text)
+				nvs=mk_int(root.find('count').find('absent').text)
+				totalvotes=ayes+nays
+
 				bill_type=billdetails[0].replace('.','').replace(' ','')
 				bill_numb=billdetails[1]
+
+				#### NEW XML TO GET QUESTION
+				try:
+					url="https://www.govinfo.gov/bulkdata/BILLSTATUS/"+str(int(congress))+"/"+bill_type.lower()+"/BILLSTATUS-"+str(int(congress))+bill_type.lower()+str(int(bill_numb))+".xml"
+					print url
+					blah=ET.ElementTree(file=urllib2.urlopen(urllib2.Request(url, headers=request_headers)))
+					root=blah.getroot()
+
+					# title
+					for elem in root.findall(".//*[titleType='Official Title as Introduced']"):
+						bill_title=elem.findall('./title')[0].text
+				except:
+					print "DIDN'T FIND XML OR DIDN'T FIND TITLE"
+					bill_title=''
+
+				############################
 
 				# amendment=amend_author.findall(rollcall)
 				# There's really no point popuating votetype on the Senate side - it's just the 2nd sentence of question
@@ -309,7 +369,7 @@ def scrape_votes_senate(existing_file_senate):
 					pass
 
 				# try:
-				votecode=classify_question_senate(question,bill_title,votetype,amendment,amendment_to_amendment,amendment_to_amendment_to_amendment)
+				votecode=classify_question_senate(question,bill_title,bill_type.lower(),amendment,amendment_to_amendment,amendment_to_amendment_to_amendment)
 				bill2watch=''
 				billnum2=bill_type+' '+bill_numb
 				votedate=str(int(month))+'/'+str(int(day))+'/'+str(int(year))
@@ -319,13 +379,15 @@ def scrape_votes_senate(existing_file_senate):
 				row=[int(congress),session,year,vote,'','',votecode,'','',
 					totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
 					nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,
-					billnum2,question,amendment,amendment_to_amendment,amendment_to_amendment_to_amendment,result,url,bill_title,votedate,month,day]	
+					billnum2,question,amendment,amendment_to_amendment,amendment_to_amendment_to_amendment,
+					result,url,bill_title,votedate,month,day,vpvote,vpyn,'','',dpresent,dnv,rpresent,rnv,
+					iayes,inays,ipresent,inv]	
 				# code_votes_senate([row])
-				print url
-				print row
+				print "ROLLCALL URL:",url
+				print "FINAL ROW:",row
 				writer.writerow(row)
 
-				del amendment,vote,totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,billnum2,question,result,url,bill_title,votedate,month,day
+				del amendment,vote,totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill2watch,bill_type,bill_numb,billnum2,question,result,url,bill_title,votedate,month,day,vpvote,vpyn,dpresent,ipresent,rpresent,iayes,inays,inv,rnv,dnv
 
 				# except:
 					# print 'Bad vote: '+ str(congress) + ' ' + str(session) + ' ' + str(year) + ' ' + str(vote)
@@ -375,7 +437,7 @@ def scrape_votes(existing_file):
 
 	# Iterate through years from 1989 to present (Thomas only has votes >1989)
 	current_year=datetime.date.today().year
-	for year in range(1989,current_year+1,1):
+	for year in range(1990,current_year+1,1):
 		print year
 		url='http://clerk.house.gov/evs/%s/index.asp' % (year)
 		
@@ -424,6 +486,7 @@ def scrape_votes(existing_file):
 					amendment2=''
 					amendment3=''
 					amendment=''
+					bill_title=''
 					for fullvote in fullvotes:
 						if int(vote)==int(fullvote[0]):
 							bill_details=geturl(fullvote[1])
@@ -484,8 +547,9 @@ def scrape_votes(existing_file):
 					congress_finder=re.compile('<congress>(.*?)</congress>')
 					session_finder=re.compile('<session>(.)..</session>')
 					vote_totals=re.compile('<total-stub>Totals</total-stub>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
-					rep_totals=re.compile('<party>Republican</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
-					dem_totals=re.compile('<party>Democratic</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>')
+					rep_totals=re.compile('<party>Republican</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>\r\n<present-total>(.*?)</present-total>\r\n<not-voting-total>(.*?)</not-voting-total>')
+					dem_totals=re.compile('<party>Democratic</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>\r\n<present-total>(.*?)</present-total>\r\n<not-voting-total>(.*?)</not-voting-total>')
+					ind_totals=re.compile('<party>Independent</party>\r\n<yea-total>(.*?)</yea-total>\r\n<nay-total>(.*?)</nay-total>\r\n<present-total>(.*?)</present-total>\r\n<not-voting-total>(.*?)</not-voting-total>')
 					leg_finder=re.compile('<legislator .*?party="(.*?)" state="(.*?)" role="legislator">.*?</legislator><vote>(.*?)</vote>')
 					legis_num_finder=re.compile('<legis-num>(.*?)</legis-num>')
 					question_finder=re.compile('<vote-question>(.*?)</vote-question>')
@@ -495,13 +559,21 @@ def scrape_votes(existing_file):
 					congress=congress_finder.findall(rollcall)[0]
 					session=session_finder.findall(rollcall)[0]
 					try:
-						totalvotes=int(vote_totals.findall(rollcall)[0][0])+int(vote_totals.findall(rollcall)[0][1])
 						ayes=int(vote_totals.findall(rollcall)[0][0])
 						nays=int(vote_totals.findall(rollcall)[0][1])
 						dayes=int(dem_totals.findall(rollcall)[0][0])
 						dnays=int(dem_totals.findall(rollcall)[0][1])
 						rayes=int(rep_totals.findall(rollcall)[0][0])
 						rnays=int(rep_totals.findall(rollcall)[0][1])
+						dnv=int(dem_totals.findall(rollcall)[0][3])
+						rnv=int(rep_totals.findall(rollcall)[0][3])
+						dpresent=int(dem_totals.findall(rollcall)[0][2])
+						rpresent=int(rep_totals.findall(rollcall)[0][2])
+						iayes=int(ind_totals.findall(rollcall)[0][0])
+						inays=int(ind_totals.findall(rollcall)[0][1])
+						inv=int(ind_totals.findall(rollcall)[0][3])
+						ipresent=int(ind_totals.findall(rollcall)[0][2])
+						totalvotes=ayes+nays
 					except:
 						pass
 					legislators=leg_finder.findall(rollcall)
@@ -556,6 +628,24 @@ def scrape_votes(existing_file):
 					# 	question=question[0]
 					# except:
 					# 	question=''
+
+					#### NEW XML TO GET QUESTION
+					try:
+						url="https://www.govinfo.gov/bulkdata/BILLSTATUS/"+str(int(congress))+"/"+bill_type.lower()+"/BILLSTATUS-"+str(int(congress))+bill_type.lower()+str(int(bill_numb))+".xml"
+						print url
+						blah=ET.ElementTree(file=urllib2.urlopen(urllib2.Request(url, headers=request_headers)))
+						root=blah.getroot()
+
+						# title
+						for elem in root.findall(".//*[titleType='Official Title as Introduced']"):
+							bill_title=elem.findall('./title')[0].text
+							print bill_title
+					except:
+						print "DIDN'T FIND XML OR DIDN'T FIND TITLE"
+						bill_title=''
+
+					############################
+
 
 					if question=='ELECTION OF SPEAKER':
 						cand_finder=re.compile('<totals-by-candidate><candidate>(.*?)</candidate><candidate-total>(.*?)</candidate-total></totals-by-candidate>')
@@ -643,7 +733,8 @@ def scrape_votes(existing_file):
 					row=[congress,session,year,vote,'','',votecode,'','','',
 						totalvotes,ayes,nays,dayes,dnays,rayes,rnays,ndayes,ndnays,sdayes,sdnays,nrayes,
 						nrnays,srayes,srnays,unity,coalition,unanimous,ndr,bill_type,bill_numb,
-						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3]	
+						question,amendment,votetype,url,question2,bill_title,amendment2,amendment3,
+						'','',dpresent,dnv,rpresent,rnv,iayes,inays,ipresent,inv]	
 					code_votes([row])
 					print url
 					print row
@@ -802,224 +893,175 @@ def classify_question(question,question2,bill_title,amendment,votetype,billtype,
 		# 30: 'on presidential veto' OR 'objections' OR 'objection of president'
 		if 'on presidential veto' in question or 'objections' in question or 'objection of president' in question:
 			dict['30']=1
-
 		# 56: 'motion to discharge' and NOT 'table'
 		if 'motion to discharge' in question:
 			dict['56']=1
-
 		# 193: 'article i'
 		# what are these and why are they being coded?
 		# if 'article i' in question:
 		# 	dict['193']=1
-
 		# 63: 'motion to reconsider' and NOT 'table'
 		# if 'motion to reconsider' in question or ('sustain' in question and 'chair' in question):
 		if 'motion to reconsider' in question:
 			dict['63']=1
-
 		# 83: 'commit' AFTER performing a split on space
 		if 'commit' in question.split(' '):
 			dict['83']=1
-
 		# 82: 'recede' NOT 'recede and concur' 
 		if 'recede' in question and 'concur' not in question:
 			dict['82']=1
-
 		# 66: 'proceed in order' NOT 'table'
 		if 'proceed in order' in question:
 			dict['66']=1
-
 		# 67: 'sustain' AND 'chair'
 		if 'sustain' in question and 'chair' in question:
 			dict['67']=1
-
 		# 89: 'election' AND 'speaker'
 		if 'election' in question and 'speaker' in question:
 			dict['89']=1
-
 		# 33: 'conference report' AND ('suspend the rules' OR 'suspend rules')
 		if 'conference report' in question and ('suspend rules' in question or 'suspend rules' in question):
 			dict['33']=1
-
 		# 85: 'ordering a second'
 		if 'ordering a second' in question:
 			dict['85']=1
-
 		# 87: ('motion to refer' NOT 'table' NOT 'previous question') OR 'refer bill'
 		if 'motion to refer' in question or 'refer bill' in question:
 			dict['87']=1
-
 		# 84: ('consider' OR 'consideration' after a split on space) AND (NOT 'postpone' or 'postponing')
 		if ('consider' in question.split(' ') or 'consideration' in question.split(' ')) and 'postpone' not in question and 'postponing' not in question:
 			dict['84']=1
-
 		# 9: billtype is quorum
 		if 'QUORUM' in billtype and 'states' not in question:
 			dict['9']=1
-
 		# 77: 'rise' NOT ('strike' OR 'stricken' OR 'striking')
 		if 'rise' in question and 'strike' not in question and 'stricken' not in question and 'striking' not in question:
 			dict['77']=1
-
 		# 90: 'strike' OR 'striking' OR 'stricken'
 		if 'strike' in question or 'striking' in question or 'stricken' in question:
 			dict['90']=1
-
 		# 91: 'on approving the journal' NOT 'table'
 		if 'on approving journal' in question:
 			dict['91']=1
-
 		# 92: '' OR 'adjourn' NOT 'table'
 		if 'adjourn' in question:
 			dict['92']=1
-
 		# 76: 'limit debate' NOT 'table'
 		if 'limit debate' in question:
 			dict['76']=1
-
 		# 74: 'postpo'
 		if 'postpo' in question:
 			dict['74']=1
-
 		# 94: 'resolve into committee' OR 'resolving into committee' NOT 'table'
 		if 'resolve into committee' in question or 'resolving into committee' in question:
 			dict['94']=1
-
 		# 79: 'disagree' NOT 'table' NOT 'recede'
 		if ('disagree' in question or 'go to conference' in question) and 'recede' not in question:
 			dict['79']=1
-
 		# 72: 'recommit' AND 'conference report' NOT 'table' AND 'conference' in question2
 		if ('recommit' in question and 'conference report' in question and 'conference' in question2) or ('recommit' in question and 'conference' in question2):
 			dict['72']=1
-
 		# 93: 'recommit' NOT 'conference report' NOT 'table' NOT 'previous question' NOT 'conference' in question2
 		if 'recommit' in question and 'conference report' not in question and 'conference' not in question2:
 			dict['93']=1
-
 		# 95: 'conferees' NOT 'table' NOT 'previous question' NOT 'substitute' NOT ('authorizing' OR 'authorize')
 		if 'conferees' in question and 'authorizing' not in question and 'authorize' not in question:
 			dict['95']=1
-
 		# 12: 'agreeing' AND 'conference report' NOT 'table' NOT 'previous question'
 		if 'agreeing' in question and 'conference report' in question:
 			dict['12']=1
-
 		# 68: 'suspend rules' AND 'senate amendment'
 		if 'suspend rules' in question and 'senate amendment' in question:
 			dict['68']=1
-
 		# 80: 'agreeing to amendment' AND 'providing for consideration' in bill_title
 		if 'agreeing to amendment' in question and 'providing for consideration of bill' in bill_title:
 			dict['80']=1
-
 		# 73: 'senate amendment' and 'agree' NOT 'suspend rules' or 'with'
 		if 'senate amendment' in question and 'suspend rules' not in question and 'agree' in question and 'with' not in question:
 			dict['73']=1
-
 		# 14: 'on passage' or 'agreeing to resolution' AND 'HJRES' in billtype NOT suspend
 		if ('on passage' in question or 'agreeing to resolution' in question) and 'suspend' not in question and (billtype=='HJRES' or billtype=='SJRES') and 'constitution' not in bill_title and '30' not in dict.keys() and 'constitution' not in votetype:
 			dict['14']=1
-
 		# 16: 'HJRES' or 'SJRES' and 'passage' or 'agreeing' and 'suspend'
 		if ('on passage' in question or 'agreeing to resolution' in question or 'and pass' in question) and 'suspend' in question and (billtype=='HJRES' or billtype=='SJRES') and 'constitution' not in bill_title:
 			dict['16']=1
-
 		# 11: 'on passage' NOT 'HJRES' in billtype NOT ('constitution' AND 'amendment' in votetype)
 		if 'on passage' in question and billtype!='HJRES' and billtype!='SJRES' and 'constitution' not in question2 and '30' not in dict.keys():
 			dict['11']=1
-
 		# 97: 'recede and concur' or 'motion to concur' but also like 73 with 'with'
 		if '68' not in dict.keys() and 'concurrent' not in question and ('concur' in question or ('senate amendment' in question and 'suspend rules' not in question and 'with' in question) or 'motion to concur' in question or 'concur in the Senate amendment' in question2):
 			dict['97']=1
-
 		# 81: 'providing for consideration' or 'providing for further' in votetype, 'agreeing to resolution' in question 
 		if 'agreeing to resolution' in question and ('providing for' in votetype or 'waiving' in votetype or 'consideration of' in votetype) and billtype=='HRES':
 			dict['81']=1
-
 		# 13: CODE:  13 --- see 81 but in short 'agreeing to the resolution' + NOT already classified as 81, pending resolution of issue sent to mike - also 'adoption' + 'resolution' NOT 'suspend' also billtype is HRES
 		if '81' not in dict.keys() and ('agreeing to resolution' in question or ('adoption' in question and 'resolution' in question)) and 'suspend' not in question and billtype=='HRES':
 			dict['13']=1
-
 		# 17: 'agreeing' NOT 'suspend' billtype is 'HCONRE' or 'SCONRE' and 'conference report' not in question
 		if 'agreeing' in question and 'suspend' not in question and (billtype=='SCONRE' or billtype=='HCONRE') and 'amendment' not in question and 'conference report' not in question:
 			dict['17']=1
-
 		# 18: 'suspend' and 'agree' billtype is 'HCONRE' or 'SCONRE'
 		if 'suspend' in question and 'agree' in question and (billtype=='SCONRE' or billtype=='HCONRE') and 'constitution' not in bill_title:
 			dict['18']=1
-
 		# 15: 'suspend' and 'pass' or 'agree' NOT 'conference report' and billtype is 'HR' or 'S'
 		if 'conference report' not in question and 'suspend' in question and ('pass' in question or 'agree' in question) and (billtype=='HR' or billtype=='S') and 'senate amendment' not in question:
 			dict['15']=1
-
 		# 1: 'amendment' and 'constitution' in question2 and not 91 for whatever reason
 		if ('amendment to constitution' in bill_title or 'constitutional amendment' in bill_title) and len(dict.keys())==0:
 			dict['1']=1
-
 		# 19: analog to 13 but with suspension. 'suspend' + 'HRES' + ('agree' or 'pass')
 		if 'suspend' in question and billtype=='HRES' and ('agree' in question or 'pass' in question):
 			dict['19']=1
-
 		# 31: 
-		if 'adopting first article' in question or 'agreeing to sec 1' in question:
+		if 'adopting first article' in question or 'agreeing to sec 1' in question or 'agreeing to article i' in question:
 			dict['31']=1
-
 		# 32:
-		if 'adopting second article' in question or 'adopting third article' in question or 'adopting fourth article' in question or 'adopting fifth article' in question:
+		if 'adopting second article' in question or 'adopting third article' in question or 'adopting fourth article' in question or 'adopting fifth article' in question or 'agreeing to article ii'in question:
 			dict['32']=1
-
 		# amendments: these are tricky because they look almost identical to one another and it's also a bit difficult to
 		# distinguish them from other votes easily. One possibility is to check for the presence of amendment2/3 ie
 		# amendment2!=''. Some other votes that are not amendments occasionally pick up amendment2/3 fields however
 		# (update: this is a bug, should be fixed now) so the best thing is probably to see if a vote hasn't been coded
 		# yet AND has an amendment2 field.
 		if len(dict.keys())==0 and (amendment!=''):
-
 			# 27: 'to' AND 'substitute' in amendment
 			if ' to ' in amendment and 'substitute' in amendment:
 				dict['27']=1
-
 			# 23: 'substitute' in amendment OR 'substitute' in amendment2 AND 'nature' not in amendment2 AND 'nature' not in amendment
 			if 'substitute' in amendment and ' to ' not in amendment:
 				dict['23']=1
-
 			# 22: 'amendment to [A-Z].*? ' in amendment - amendment 3 is pretty similar here. Omit mentions of the senate as 'amendment to senate amendment' is really an amendment to the bill
 			if ' to ' in amendment and 'substitute' not in amendment and 'senate' not in amendment:
 				dict['22']=1
-
 			# 21: all other amendments and NOT 'committees to sit'
 			if len(dict.keys())==0 and 'committees to sit' not in question:
 				dict['21']=1
-
 	# 99: 'previous question' and 'providing for consideration' in votetype
 	if 'previous question' in question and ('providing for' in bill_title or 'waiving' in bill_title):
 		dict['99']=1
-
 	# 88: 'previous question'
 	if 'previous question' in question and 'providing for' not in bill_title and 'waiving' not in bill_title:
 		dict['88']=1
-	
 	# 96: 'table'
 	if 'table' in question:
 		dict['96']=1
-
 	if len(dict.keys())>1:
 		final='?'
-
+		with open(diagnostic_file_location,'a') as cfile:
+			writer=csv.writer(cfile)
+			writer.writerow([final,dict,question,bill_title,votetype,amendment,amendment2,amendment3])
 	if len(dict.keys())==1:
 		final=dict.keys()[0]
-
 	if len(dict.keys())==0:
 		final='69'
-
+		with open(diagnostic_file_location,'a') as cfile:
+			writer=csv.writer(cfile)
+			writer.writerow([final,dict,question,bill_title,votetype,amendment,amendment2,amendment3])
 	# sorta klugey but to be safe, override on 9s - some of these seem to pop up as amendments but these have to be quorum calls
 	if '9' in dict.keys():
 		final='9'
-
 	if test==1:
 		print dict
-
 	return final
 
 
@@ -1027,15 +1069,14 @@ def classify_question_senate(question,bill_title,votetype,amendment,amendment2,a
 	"""Takes three strings associated with a vote and classifies the vote. If more than one classification
 	is found or not classification is found, will classify the vote as '?'."""
 	dict={}
+	amendment=amendment.lower()
 	if test==1:
 		print question
 		print bill_title
 		print votetype
-
 	# No Statement of Purpose on File. - sometimes given to bills that aren't amendments
 	if 'no statement of purpose' in amendment:
 		amendment=''
-
 	# if 'table' not in question and 'previous question' not in question and 'substitute' not in question:
 	# 1: constitutional amendments
 	if 'amendment to constitution' in question or 'amendment to the constitution' in question and 'sense of senate' not in question:
@@ -1160,10 +1201,16 @@ def classify_question_senate(question,bill_title,votetype,amendment,amendment2,a
 		dict['193']=1
 	if len(dict.keys())>1:
 		final='999'
+		with open(diagnostic_file_location_senate,'a') as cfile:
+			writer=csv.writer(cfile)
+			writer.writerow([final,dict,question,bill_title,votetype,amendment,amendment2,amendment3])
 	if len(dict.keys())==1:
 		final=dict.keys()[0]
 	if len(dict.keys())==0:
 		final='69'
+		with open(diagnostic_file_location_senate,'a') as cfile:
+			writer=csv.writer(cfile)
+			writer.writerow([final,dict,question,bill_title,votetype,amendment,amendment2,amendment3])
 	if 'on cloture motion' in question or 'motion to invoke cloture' in question:
 		final='62'
 	if test==1:

@@ -85,7 +85,7 @@ def draw_graphs(vfile,chamber):
 			ratio1=len([row for row in vlist1 if row[1]==vtype])/len(vlist1)
 			a1.append(ratio1)
 			if year>minyear+1:
-				vlist3=[row for row in votes if row[0]<=year and row[0]>=year-2]
+				vlist3=[row for row in votes if row[0]<=year and row[0]>=int(year)-2]
 				ratio3=len([row for row in vlist3 if row[1]==vtype])/len(vlist3)
 				a3.append(ratio3)
 
